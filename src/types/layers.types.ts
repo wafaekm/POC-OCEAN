@@ -1,0 +1,1 @@
+export type LayerId = 'shom-bathymetrie' | 'ppri-zones' | 'ppri-fill'
