@@ -1,0 +1,98 @@
+.map3d-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.map3d-container {
+  width: 100%;
+  height: 100%;
+}
+
+.map3d-container .cesium-widget canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.building-panel {
+  position: absolute;
+  top: 72px;
+  right: 16px;
+  background: rgba(15, 15, 28, 0.94);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: white;
+  font-family: sans-serif;
+  width: 230px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.building-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.building-panel-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #EF9F27;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.building-panel-close {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.building-panel-close:hover {
+  color: #aaa;
+}
+
+.building-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.building-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 8px;
+}
+
+.building-row:last-child {
+  border-bottom: none;
+}
+
+.building-label {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.building-value {
+  color: #ddd;
+  text-align: right;
+  line-height: 1.3;
+}
+
+.building-footer {
+  margin-top: 10px;
+  font-size: 10px;
+  color: #444;
+  text-align: right;
+}
