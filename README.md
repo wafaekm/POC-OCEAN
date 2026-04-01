@@ -26,7 +26,7 @@ POC d'un agent IA capable de répondre à des questions sur la marée à La Roch
 ## Installation
 
 ```bash
-pip install mistralai python-dotenv
+pip install -r requirements.txt
 ```
 
 ---
