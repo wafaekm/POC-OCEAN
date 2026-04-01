@@ -1,6 +1,14 @@
-# POC Géo-Twin Littoral — Niveau agentic
+# POC Géo-Twin Littoral
 
 POC d'un agent IA capable de répondre à des questions sur la marée à La Rochelle, en s'appuyant sur les données marégraphiques du SHOM et un LLM Mistral.
+
+---
+
+## Niveaux
+
+**Niveau 1 (ce POC)** — L'agent lit les données marégraphiques et répond en texte aux questions posées.
+
+**Niveau 2 (à venir)** — L'agent génère des cartes et visualisations qu'il renvoie directement dans le chat.
 
 ---
 
