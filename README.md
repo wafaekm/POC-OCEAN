@@ -1,1 +1,1 @@
-# POC-G-o-Twin-littoral-
+# POC-Géo-Twin-littoral
