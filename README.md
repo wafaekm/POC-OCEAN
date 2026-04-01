@@ -2,17 +2,12 @@
 
 POC d'un agent IA capable de répondre à des questions sur la marée à La Rochelle, en s'appuyant sur les données marégraphiques du SHOM et un LLM Mistral.
 
----
-
 ## Niveaux
 
-**Niveau 1 (ce POC)** — L'agent lit les données marégraphiques et répond en texte aux questions posées.
+- **Niveau 1** *(en cours)* : l'agent lit les données marégraphiques et répond en texte aux questions posées.
+- **Niveau 2** *(objectif suivant)* : l'agent génère des cartes et visualisations qu'il renvoie directement dans le chat.
 
-**Niveau 2 (à venir)** — L'agent génère des cartes et visualisations qu'il renvoie directement dans le chat.
-
----
-
-## Ce que fait ce POC
+## Ce que fait l'agent
 
 - Un agent conversationnel (en français) spécialisé sur la submersion marine et les risques côtiers à La Rochelle
 - L'agent dispose de deux outils :
@@ -21,15 +16,11 @@ POC d'un agent IA capable de répondre à des questions sur la marée à La Roch
 - Pour le passé (≤ 2025) : données réelles SHOM en fichiers JSON locaux
 - Pour le futur ou le temps réel : appel à l'API publique SHOM
 
----
-
 ## Installation
 
 ```bash
 pip install -r requirements.txt
 ```
-
----
 
 ## Configuration
 
@@ -45,8 +36,6 @@ cp .env.example .env
 MISTRAL_API_KEY=ta_clé_ici
 ```
 
----
-
 ## Lancement
 
 ```bash
@@ -60,8 +49,6 @@ L'agent démarre en mode interactif. Tape `exit` pour quitter.
 - *"À quelle hauteur était la mer le 15 janvier 2024 à 8h ?"*
 - *"Est-ce qu'il y a un risque de submersion demain matin ?"*
 
----
-
 ## Structure
 
 ```
@@ -72,8 +59,6 @@ L'agent démarre en mode interactif. Tape `exit` pour quitter.
 ├── .env                      # Clé API (non commité)
 └── .env.example              # Modèle de configuration
 ```
-
----
 
 ## Données
 
