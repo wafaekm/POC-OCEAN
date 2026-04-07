@@ -1,0 +1,1266 @@
+{
+  "type": "FeatureCollection",
+  "generated": "2026-03-30",
+  "source": "OpenStreetMap Overpass API",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.9883514,
+          45.963932
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "node",
+        "osm_id": 518251973,
+        "tags": {
+          "man_made": "water_tower",
+          "source": "IGN, Service de Géodésie et Nivellement: 2006"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0541962,
+          46.1035996
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "node",
+        "osm_id": 13293906878,
+        "tags": {
+          "man_made": "pumping_station",
+          "operator": "Agglomération De La Rochelle"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1037904,
+          46.1386551
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 71916637,
+        "tags": {
+          "building": "yes",
+          "height": "53",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "483264",
+          "source": "extraction vectorielle v1 cadastre-dgi-fr source : Direction Générale des Impôts - Cadas. Mise à jour : 2010"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1238532,
+          46.1369933
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 71920451,
+        "tags": {
+          "building": "yes",
+          "height": "33",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "1625064",
+          "source": "extraction vectorielle v1 cadastre-dgi-fr source : Direction Générale des Impôts - Cadas. Mise à jour : 2010;IGN, Service de Géodésie et Nivellement: 2006",
+          "wall": "no"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.104589,
+          46.145712
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 71927813,
+        "tags": {
+          "building": "yes",
+          "height": "75",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "958884",
+          "source": "extraction vectorielle v1 cadastre-dgi-fr source : Direction Générale des Impôts - Cadas. Mise à jour : 2010"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.9716263,
+          46.1135266
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 75580005,
+        "tags": {
+          "building": "yes",
+          "height": "50.8",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "686174",
+          "source": "extraction vectorielle v1 cadastre-dgi-fr source : Direction Générale des Impôts - Cadas. Mise à jour : 2010"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0863409,
+          46.0585738
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 86339530,
+        "tags": {
+          "building": "yes",
+          "height": "34",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "526149",
+          "seamark:tank:category": "water_tower",
+          "seamark:type": "tank",
+          "source": "extraction vectorielle v1 cadastre-dgi-fr source : Direction Générale des Impôts - Cadas. Mise à jour : 2010"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.9695949,
+          45.9654937
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "Château d'eau de Beligon",
+        "osm_type": "way",
+        "osm_id": 90800543,
+        "tags": {
+          "building": "yes",
+          "man_made": "water_tower",
+          "name": "Château d'eau de Beligon",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0839057,
+          45.9875732
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 92520426,
+        "tags": {
+          "building": "yes",
+          "man_made": "water_tower",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.3487244,
+          46.1751748
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 111169370,
+        "tags": {
+          "building": "service",
+          "height": "38",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "844459",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011",
+          "utility": "water"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0097314,
+          46.2613534
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 116359041,
+        "tags": {
+          "building": "yes",
+          "height": "75",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "1879841",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0109505,
+          46.171148
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 116440577,
+        "tags": {
+          "building": "yes",
+          "man_made": "water_tower",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0095557,
+          46.1357977
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 117126343,
+        "tags": {
+          "building": "yes",
+          "man_made": "water_tower",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0523543,
+          46.1381714
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 117127122,
+        "tags": {
+          "man_made": "pumping_station",
+          "source": "IGN - 2024-03-15"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0741735,
+          46.1909226
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 117209543,
+        "tags": {
+          "building": "yes",
+          "height": "39.6",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "619864",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0943725,
+          46.1444305
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "Captage eau potable de Varaize",
+        "osm_type": "way",
+        "osm_id": 118093338,
+        "tags": {
+          "area": "yes",
+          "man_made": "pumping_station",
+          "name": "Captage eau potable de Varaize",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0677045,
+          46.0851225
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 118152847,
+        "tags": {
+          "building": "yes",
+          "man_made": "water_tower",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.05959,
+          46.0900285
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 118173194,
+        "tags": {
+          "building": "service",
+          "man_made": "pumping_station",
+          "source": "IGN - 2022-06"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.965535,
+          46.082818
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 119511131,
+        "tags": {
+          "building": "yes",
+          "height": "31",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "1665686",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1999057,
+          46.1755308
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 119812955,
+        "tags": {
+          "man_made": "water_tower",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1418818,
+          46.1650196
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "Château d'eau de Saint-Éloi 2",
+        "osm_type": "way",
+        "osm_id": 119815534,
+        "tags": {
+          "building": "yes",
+          "building:colour": "#eecfaf",
+          "capacity": "2500 m³",
+          "man_made": "water_tower",
+          "name": "Château d'eau de Saint-Éloi 2",
+          "operator": "Hélo La Rochelle",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2021",
+          "start_date": "1933"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1421762,
+          46.1654361
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "Château d'eau de Saint-Éloi 1",
+        "osm_type": "way",
+        "osm_id": 119829980,
+        "tags": {
+          "building": "yes",
+          "building:colour": "#eecfaf",
+          "capacity": "2500 m³",
+          "man_made": "water_tower",
+          "name": "Château d'eau de Saint-Éloi 1",
+          "operator": "Hélo La Rochelle",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011",
+          "start_date": "1925"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1401623,
+          46.1658871
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "Château d'eau de Saint-Éloi 3",
+        "osm_type": "way",
+        "osm_id": 119832577,
+        "tags": {
+          "building": "yes",
+          "building:colour": "#eecfaf",
+          "capacity": "3000 m³",
+          "man_made": "water_tower",
+          "name": "Château d'eau de Saint-Éloi 3",
+          "operator": "Hélo La Rochelle",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011",
+          "start_date": "1943"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.2031911,
+          46.1650772
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 119848154,
+        "tags": {
+          "building": "yes",
+          "height": "35",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "1513656",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.9999231,
+          46.184167
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 169992338,
+        "tags": {
+          "building": "yes",
+          "height": "43",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "473315",
+          "source": "ANFR 08/2019"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.3485214,
+          46.1754146
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 176115455,
+        "tags": {
+          "building": "service",
+          "height": "38",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "844459",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011",
+          "utility": "water"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1140817,
+          46.1940338
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 177297052,
+        "tags": {
+          "building": "yes",
+          "height": "60.7",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "451242",
+          "source": "data.gouv.fr:ANFR - 08/2019"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.121981,
+          46.2403783
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 239288648,
+        "tags": {
+          "building": "yes",
+          "height": "51",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "630577",
+          "source": "data.gouv.fr:ANFR - 08/2019"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0554539,
+          46.1924444
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 304506080,
+        "tags": {
+          "building": "yes",
+          "man_made": "pumping_station",
+          "pumping_station": "wastewater"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.052724,
+          46.1111863
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 306639158,
+        "tags": {
+          "man_made": "water_tower"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0525471,
+          46.1109723
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 332299308,
+        "tags": {
+          "building": "yes",
+          "man_made": "water_tower"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.3483666,
+          46.1751847
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 513183107,
+        "tags": {
+          "building": "service",
+          "height": "38",
+          "man_made": "water_tower",
+          "ref:FR:ANFR": "844459",
+          "source": "data.gouv.fr:ANFR - 08/2019",
+          "utility": "water"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1079294,
+          46.149963
+        ]
+      },
+      "properties": {
+        "category": "eau",
+        "nom": "",
+        "osm_type": "way",
+        "osm_id": 1151639846,
+        "tags": {
+          "man_made": "pumping_station",
+          "pumping_station": "water",
+          "source": "IGN - 2022-06"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.3253884,
+          46.1800268
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "",
+        "osm_type": "node",
+        "osm_id": 11113864512,
+        "tags": {
+          "amenity": "fire_station"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1446317,
+          46.1594269
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'oncologie et de radiothérapie",
+        "osm_type": "node",
+        "osm_id": 11381521757,
+        "tags": {
+          "amenity": "hospital",
+          "healthcare:speciality": "oncology;radiotherapy",
+          "name": "Centre d'oncologie et de radiothérapie"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1769272,
+          46.0123143
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de l'Île-d'Aix",
+        "osm_type": "way",
+        "osm_id": 64991244,
+        "tags": {
+          "addr:full": "Rue Marengo 17123 Ile-d'Aix",
+          "amenity": "fire_station",
+          "building": "house",
+          "fire_station:type:FR": "CPI",
+          "heritage": "3",
+          "heritage:operator": "mhs",
+          "historic": "building",
+          "mhs:inscription_date": "1931-05-05",
+          "name": "Centre d'incendie et de secours de l'Île-d'Aix",
+          "operator": "SDIS 17",
+          "operator:wikidata": "Q88754892",
+          "ref:FR:RNB": "RAJ37AJG93YZ",
+          "ref:FR:SDIS:GRPT": "Sud-Ouest",
+          "ref:mhs": "PA00104743",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010",
+          "source:heritage": "data.gouv.fr, Ministère de la Culture - 2016",
+          "wheelchair": "yes",
+          "wikidata": "Q22954875"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.3134641,
+          46.1549885
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de Sainte-Marie-de-Ré",
+        "osm_type": "way",
+        "osm_id": 102336140,
+        "tags": {
+          "addr:full": "D201 17740 Sainte-Marie-de-Ré",
+          "addr:street": "D201",
+          "amenity": "fire_station",
+          "fax": "+33 5 46 30 28 72",
+          "fire_station:type:FR": "CS",
+          "name": "Centre d'incendie et de secours de Sainte-Marie-de-Ré",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 30 26 27",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest",
+          "wheelchair": "yes"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1357032,
+          46.1743298
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Hôpital Psychiatrique Marius Lacroix",
+        "osm_type": "way",
+        "osm_id": 186361276,
+        "tags": {
+          "amenity": "hospital",
+          "fax": "+33 5 46 45 50 00",
+          "healthcare": "hospital",
+          "healthcare:speciality": "psychiatry",
+          "name": "Hôpital Psychiatrique Marius Lacroix",
+          "name:etymology:wikidata": "Q20204204",
+          "operator": "Groupe hospitalier La Rochelle - Ré - Aunis",
+          "operator:type": "public",
+          "phone": "+33 5 46 45 50 50",
+          "ref:FR:FINESS": "170782981",
+          "type:FR:FINESS": "355",
+          "wikidata": "Q106486470"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1756477,
+          46.1533836
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre de réadaptation fonctionnelle Richelieu",
+        "osm_type": "way",
+        "osm_id": 358563296,
+        "tags": {
+          "amenity": "hospital",
+          "email": "centre.richelieu@croix-rouge.fr",
+          "fax": "+33 5 46 43 48 22",
+          "healthcare": "hospital",
+          "name": "Centre de réadaptation fonctionnelle Richelieu",
+          "operator": "Croix-Rouge française",
+          "operator:type": "private",
+          "operator:wikidata": "Q3003244",
+          "phone": "+33 5 46 43 12 05",
+          "ref": "1808",
+          "ref:FR:FINESS": "170780043",
+          "ref:FR:NAF": "8610Z",
+          "ref:FR:SIREN": "775672272",
+          "ref:FR:SIRET": "77567227210503",
+          "source": "INSEE - 2024-09",
+          "type:FR:FINESS": "109",
+          "website": "https://pourvous.croix-rouge.fr/centre-de-readaptation-fonctionnelle-richelieu"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1438233,
+          46.1601029
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre hospitalier de La Rochelle",
+        "osm_type": "way",
+        "osm_id": 395543450,
+        "tags": {
+          "alt_name": "Hôpital Saint-Louis",
+          "amenity": "hospital",
+          "emergency": "yes",
+          "healthcare": "hospital",
+          "healthcare:speciality": "intensive",
+          "name": "Centre hospitalier de La Rochelle",
+          "operator": "Groupe hospitalier La Rochelle - Ré - Aunis",
+          "phone": "+33 5 46 45 50 50",
+          "ref:FR:FINESS": "170000087",
+          "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre ; mise à jour : 2008",
+          "type:FR:FINESS": "355",
+          "website": "http://www.ch-larochelle.fr/",
+          "wheelchair": "yes",
+          "wikidata": "Q30269709"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0046011,
+          46.1914872
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de Bourgneuf Sainte-Soulle",
+        "osm_type": "way",
+        "osm_id": 452655866,
+        "tags": {
+          "addr:full": "D203 17220 Sainte-Soulle",
+          "addr:street": "D203",
+          "amenity": "fire_station",
+          "fire_station:type:FR": "CPI",
+          "name": "Centre d'incendie et de secours de Bourgneuf Sainte-Soulle",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 51 61 36",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.9633878,
+          45.9670999
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre hospitalier de Rochefort",
+        "osm_type": "way",
+        "osm_id": 638609299,
+        "tags": {
+          "amenity": "hospital",
+          "emergency": "yes",
+          "fax": "+33 5 46 88 50 61",
+          "name": "Centre hospitalier de Rochefort",
+          "operator:type": "public",
+          "phone": "+33 5 46 88 50 50",
+          "ref:FR:FINESS": "170000152",
+          "type:FR:FINESS": "355",
+          "website": "https://ch-rochefort.fr/fr/",
+          "wikidata": "Q2945701"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0098083,
+          46.0710909
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de Thairé",
+        "osm_type": "way",
+        "osm_id": 655160806,
+        "tags": {
+          "addr:full": "8 Rue Eugène Chaussat 17290 Thairé",
+          "addr:street": "Rue Eugène Chaussat",
+          "amenity": "fire_station",
+          "check_date": "2024-07-21",
+          "fire_station:type:FR": "CPI",
+          "name": "Centre d'incendie et de secours de Thairé",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 56 49 47",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest",
+          "wheelchair": "yes"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0857119,
+          46.0694081
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de Châtelaillon-Plage",
+        "osm_type": "way",
+        "osm_id": 655195021,
+        "tags": {
+          "addr:full": "1 Avenue du Maréchal Foch 17340 CHâtelaillon-Plage",
+          "addr:street": "Avenue du Maréchal Foch",
+          "amenity": "fire_station",
+          "fax": "+33 5 46 56 22 06",
+          "fire_station:type:FR": "CS",
+          "name": "Centre d'incendie et de secours de Châtelaillon-Plage",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 56 22 97",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest",
+          "wheelchair": "yes"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1192643,
+          46.1574519
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de La Rochelle Villeneuve-les-Salines",
+        "osm_type": "way",
+        "osm_id": 658179223,
+        "tags": {
+          "addr:full": "Rue du Pont des Salines 17000 La Rochelle",
+          "addr:street": "Rue Pont des Salines",
+          "amenity": "fire_station",
+          "fire_station:type:FR": "CSP",
+          "name": "Centre d'incendie et de secours de La Rochelle Villeneuve-les-Salines",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 07 32 18",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest",
+          "wheelchair": "yes"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1825632,
+          46.1658311
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de La Rochelle Mireuil",
+        "osm_type": "way",
+        "osm_id": 658194409,
+        "tags": {
+          "addr:full": "Avenue du Général Mangin 17000 La Rochelle",
+          "addr:street": "Avenue du Général Mangin",
+          "amenity": "fire_station",
+          "fax": "+33 5 46 42 56 34",
+          "fire_station:type:FR": "CSP",
+          "name": "Centre d'incendie et de secours de La Rochelle Mireuil",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 00 45 48",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest",
+          "wheelchair": "yes"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.3252163,
+          46.1800734
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours de La-Flotte-en-Ré",
+        "osm_type": "way",
+        "osm_id": 658450020,
+        "tags": {
+          "addr:full": "7 Rue des Caillotières 17730 La-Flotte-en-Ré",
+          "addr:street": "Rue des Caillotières",
+          "amenity": "fire_station",
+          "fax": "+33 5 46 09 63 32",
+          "fire_station:type:FR": "CPI",
+          "name": "Centre d'incendie et de secours de La-Flotte-en-Ré",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 00 45 45",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest",
+          "wheelchair": "yes"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.9657462,
+          46.1920631
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre d'incendie et de secours d'Angliers-Vérines",
+        "osm_type": "way",
+        "osm_id": 658924070,
+        "tags": {
+          "addr:full": "16 bis Rue de la Verrerie 17540 Vérines",
+          "addr:street": "Rue de la Verrerie",
+          "amenity": "fire_station",
+          "fire_station:type:FR": "CPI",
+          "name": "Centre d'incendie et de secours d'Angliers-Vérines",
+          "operator": "SDIS 17",
+          "phone": "+33 5 46 55 42 20",
+          "ref:FR:SDIS:GRPT": "Nord-Ouest"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.1431982,
+          46.1511163
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Association Pour Adultes et Jeunes Handicapés",
+        "osm_type": "way",
+        "osm_id": 1193036538,
+        "tags": {
+          "addr:street": "Rue Jean Bouche",
+          "amenity": "hospital",
+          "emergency": "no",
+          "healthcare": "hospital",
+          "healthcare:speciality": "psychiatry",
+          "name": "Association Pour Adultes et Jeunes Handicapés",
+          "phone": "+33546452919",
+          "short_name": "APAJH",
+          "website": "https://www.apajh17.fr"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0987818,
+          46.1898863
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Centre de réadaptation cardio-vasculaire Cardiocéan",
+        "osm_type": "way",
+        "osm_id": 1376523131,
+        "tags": {
+          "addr:city": "Puilboreau",
+          "addr:housenumber": "25",
+          "addr:postcode": "17139",
+          "addr:street": "Allée de la Tourtillière",
+          "amenity": "hospital",
+          "healthcare": "hospital",
+          "name": "Centre de réadaptation cardio-vasculaire Cardiocéan"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.0952496,
+          46.0996653
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "Clinique d'Angoulins",
+        "osm_type": "way",
+        "osm_id": 1421538170,
+        "tags": {
+          "addr:city": "Angoulins",
+          "addr:housenumber": "9",
+          "addr:postcode": "17690",
+          "addr:street": "Avenue des Ormeaux",
+          "amenity": "hospital",
+          "healthcare": "hospital",
+          "name": "Clinique d'Angoulins",
+          "operator": "INICEA",
+          "operator:type": "private"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.197935,
+          46.1774796
+        ]
+      },
+      "properties": {
+        "category": "secours_sante",
+        "nom": "SSLIA",
+        "osm_type": "way",
+        "osm_id": 1423269348,
+        "tags": {
+          "amenity": "fire_station",
+          "name": "SSLIA",
+          "start_date": "2022"
+        }
+      }
+    }
+  ]
+}

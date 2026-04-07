@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './Map2D.css'
@@ -6,6 +6,20 @@ import type { LayerId } from '../../types/layers.types'
 
 const LA_ROCHELLE_CENTER: [number, number] = [-1.1528, 46.1591]
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY
+
+interface Scenario {
+  id: string
+  label: string
+  niveau_m: number
+}
+
+interface Impact {
+  niveau_m: number
+  batiments_touches: number
+  routes_coupees: number
+  reseaux_critiques: string[]
+  surface_inondee_ha: number
+}
 
 interface Props {
   layers: Record<LayerId, boolean>
@@ -15,7 +29,20 @@ export default function Map2D({ layers }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const mapReady = useRef(false)
+  const [scenarios, setScenarios] = useState<Scenario[]>([])
+  const [activeScenario, setActiveScenario] = useState<string | null>(null)
+  const [impact, setImpact] = useState<Impact | null>(null)
+  const [showImpact, setShowImpact] = useState(false)
 
+  // Charge la liste des scénarios
+  useEffect(() => {
+    fetch('/data/scenarios/index.json')
+      .then(r => r.json())
+      .then(setScenarios)
+      .catch(console.error)
+  }, [])
+
+  // Init carte
   useEffect(() => {
     if (map.current || !mapContainer.current) return
 
@@ -31,99 +58,89 @@ export default function Map2D({ layers }: Props) {
     m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
 
     m.on('load', () => {
-      m.addSource('shom-wms', {
-        type: 'raster',
-        tiles: [
-          'https://wms.gebco.net/mapserv?' +
-          'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap' +
-          '&LAYERS=GEBCO_LATEST' +
-          '&FORMAT=image/png&TRANSPARENT=true' +
-          '&WIDTH=256&HEIGHT=256&CRS=EPSG:3857' +
-          '&BBOX={bbox-epsg-3857}'
-        ],
-        tileSize: 256,
-        attribution: '© GEBCO 2024'
-      })
-      m.addLayer({
-        id: 'shom-bathymetrie',
-        type: 'raster',
-        source: 'shom-wms',
-        paint: { 'raster-opacity': 0.25 } 
-      })
-
+      // PPRI officiel
       m.addSource('ppri', {
         type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              properties: { niveau: 'fort', label: 'Zone submersion forte' },
-              geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                  [-1.18, 46.14], [-1.16, 46.14], [-1.14, 46.15],
-                  [-1.13, 46.17], [-1.14, 46.19], [-1.16, 46.20],
-                  [-1.18, 46.19], [-1.20, 46.17], [-1.20, 46.15],
-                  [-1.18, 46.14]
-                ]]
-              }
-            },
-            {
-              type: 'Feature',
-              properties: { niveau: 'moyen', label: 'Zone submersion modérée' },
-              geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                  [-1.22, 46.13], [-1.18, 46.13], [-1.14, 46.14],
-                  [-1.12, 46.16], [-1.12, 46.20], [-1.15, 46.22],
-                  [-1.20, 46.22], [-1.23, 46.20], [-1.24, 46.17],
-                  [-1.22, 46.13]
-                ]]
-              }
-            }
-          ]
-        }
+        data: '/data/ppri.geojson'
       })
-
       m.addLayer({
         id: 'ppri-fill',
         type: 'fill',
         source: 'ppri',
         paint: {
-          'fill-color': ['match', ['get', 'niveau'],
-            'fort', '#E24B4A', 'moyen', '#EF9F27', '#378ADD'],
-          'fill-opacity': 0.35
+          'fill-color': '#E24B4A',
+          'fill-opacity': 0.25
         }
       })
-
       m.addLayer({
         id: 'ppri-zones',
         type: 'line',
         source: 'ppri',
         paint: {
-          'line-color': ['match', ['get', 'niveau'],
-            'fort', '#E24B4A', 'moyen', '#EF9F27', '#378ADD'],
-          'line-width': 2
+          'line-color': '#E24B4A',
+          'line-width': 1.5,
+          'line-dasharray': [3, 2]
         }
       })
 
-      m.on('click', 'ppri-fill', (e) => {
+      // Réseaux critiques
+      m.addSource('critical-networks', {
+        type: 'geojson',
+        data: '/data/critical_networks.geojson'
+      })
+      m.addLayer({
+        id: 'critical-networks-layer',
+        type: 'circle',
+        source: 'critical-networks',
+        paint: {
+            'circle-radius': 6,
+            'circle-color': [
+                'match', ['get', 'category'],
+                'eau', '#3498DB',
+                'secours_sante', '#E74C3C',
+                '#ffffff'
+            ],
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 1.5
+        }
+      })
+
+      // Sources scénario (vides au départ)
+      m.addSource('flood-tiles', {
+        type: 'raster',
+        tiles: [],
+        tileSize: 256,
+      })
+      m.addLayer({
+        id: 'flood-tiles-layer',
+        type: 'raster',
+        source: 'flood-tiles',
+        paint: { 'raster-opacity': 0.65 },
+        layout: { visibility: 'none' }
+      })
+
+      m.on('click', 'critical-networks-layer', (e) => {
         const props = e.features?.[0]?.properties
         if (!props) return
         new maplibregl.Popup()
           .setLngLat(e.lngLat)
-          .setHTML(`<div style="font-family:sans-serif;padding:4px">
-            <strong>${props.label}</strong><br/>
-            <span style="font-size:12px;color:#666">
-              Risque de submersion marine<br/>Référence : tempête Xynthia 2010
-            </span>
-          </div>`)
+          .setHTML(`
+            <div style="font-family:sans-serif;padding:4px">
+              <strong>${props.nom || props.name || 'Réseau critique'}</strong><br/>
+              <span style="font-size:12px;color:#666">
+                Type : ${props.category || 'N/A'}
+              </span>
+            </div>
+          `)
           .addTo(m)
       })
 
-      m.on('mouseenter', 'ppri-fill', () => { m.getCanvas().style.cursor = 'pointer' })
-      m.on('mouseleave', 'ppri-fill', () => { m.getCanvas().style.cursor = '' })
+      m.on('mouseenter', 'critical-networks-layer', () => {
+        m.getCanvas().style.cursor = 'pointer'
+      })
+      m.on('mouseleave', 'critical-networks-layer', () => {
+        m.getCanvas().style.cursor = ''
+      })
 
       new maplibregl.Marker({ color: '#E24B4A' })
         .setLngLat(LA_ROCHELLE_CENTER)
@@ -138,6 +155,7 @@ export default function Map2D({ layers }: Props) {
     return () => { map.current?.remove(); map.current = null }
   }, [])
 
+  // Sync visibilité couches
   useEffect(() => {
     if (!mapReady.current || !map.current) return
     const m = map.current
@@ -148,7 +166,116 @@ export default function Map2D({ layers }: Props) {
     })
   }, [layers])
 
+  // Charge un scénario
+  const loadScenario = async (scenarioId: string) => {
+    const m = map.current
+    if (!m || !mapReady.current) return
+
+    setActiveScenario(scenarioId)
+    setShowImpact(false)
+
+    // Charge impact.json
+    try {
+      const imp = await fetch(`/data/scenarios/${scenarioId}/impact.json`)
+        .then(r => r.json())
+      setImpact(imp)
+      setShowImpact(true)
+    } catch (e) {
+      console.warn('impact.json non trouvé')
+    }
+
+    const tilesUrl = `/data/scenarios/${scenarioId}/tiles/{z}/{x}/{y}.png`
+    const src = m.getSource('flood-tiles') as maplibregl.RasterTileSource
+    if (src) {
+      ;(src as any).setTiles([tilesUrl])
+      m.setLayoutProperty('flood-tiles-layer', 'visibility', 'visible')
+    }
+  }
+
+  const clearScenario = () => {
+    const m = map.current
+    if (!m) return
+    setActiveScenario(null)
+    setImpact(null)
+    setShowImpact(false)
+    ;(m.getSource('flood-zones') as maplibregl.GeoJSONSource)
+      ?.setData({ type: 'FeatureCollection', features: [] })
+    m.setLayoutProperty('flood-tiles-layer', 'visibility', 'none')
+  }
+
   return (
-    <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
-  )
+  <div ref={mapContainer} style={{ width: '100%', height: '100%' }}>
+
+    {/* Panel scénarios — en haut, décalé pour ne pas masquer ViewToggle */}
+    <div className="scenario-panel">
+      <div className="scenario-title">Scénarios de submersion</div>
+      <div className="scenario-list">
+        {scenarios.map(s => (
+          <button
+            key={s.id}
+            className={`scenario-btn ${activeScenario === s.id ? 'active' : ''}`}
+            onClick={() =>
+              activeScenario === s.id ? clearScenario() : loadScenario(s.id)
+            }
+          >
+            <span className="scenario-label">{s.label}</span>
+            <span className="scenario-niveau">+{s.niveau_m}m</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Bouton reset */}
+      {activeScenario && (
+        <button className="scenario-reset" onClick={clearScenario}>
+          ↺ Réinitialiser
+        </button>
+      )}
+    </div>
+
+    {/* Panel impact — à droite, au-dessus du LayerControl */}
+    {showImpact && impact && (
+      <div className="impact-panel">
+        <div className="impact-header">
+          <span className="impact-title">Impact estimé</span>
+          <button
+            className="impact-close"
+            onClick={() => setShowImpact(false)}
+          >✕</button>
+        </div>
+        <div className="impact-rows">
+          <div className="impact-row">
+            <span className="impact-label">Niveau d'eau</span>
+            <span className="impact-value">{impact.niveau_m}m NGF</span>
+          </div>
+          <div className="impact-row">
+            <span className="impact-label">Bâtiments touchés</span>
+            <span className="impact-value impact-danger">
+              {impact.batiments_touches.toLocaleString('fr-FR')}
+            </span>
+          </div>
+          <div className="impact-row">
+            <span className="impact-label">Routes coupées</span>
+            <span className="impact-value impact-warning">
+              {impact.routes_coupees.toLocaleString('fr-FR')}
+            </span>
+          </div>
+          <div className="impact-row">
+            <span className="impact-label">Surface inondée</span>
+            <span className="impact-value">
+              {(impact.surface_inondee_ha / 100).toFixed(0)} km²
+            </span>
+          </div>
+          <div className="impact-row">
+            <span className="impact-label">Réseaux critiques</span>
+            <span className="impact-value impact-danger">
+              {impact.reseaux_critiques.length > 0
+                ? impact.reseaux_critiques.join(', ')
+                : 'Aucun'}
+            </span>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)
 }

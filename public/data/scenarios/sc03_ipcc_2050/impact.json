@@ -1,0 +1,67 @@
+{
+  "scenarioId": "sc03_ipcc_2050",
+  "label": "IPCC 2050 (SSP2-4.5 médiane)",
+  "niveau_m": 3.374,
+  "batiments_touches": 5122,
+  "batiments_critiques": [],
+  "routes_coupees": 3563,
+  "reseaux_critiques": [],
+  "surface_inondee_ha": 78128.3,
+  "details": {
+    "scenario_id": "sc03_ipcc_2050",
+    "level_m": 3.374,
+    "batiments": {
+      "n_touches": 5122,
+      "par_nature": {
+        "Industriel, agricole ou commercial": 443,
+        "Indifférenciée": 4639,
+        "Silo": 25,
+        "Serre": 2,
+        "Fort, blockhaus, casemate": 7,
+        "Tour, donjon": 6
+      },
+      "par_usage": {
+        "Indifférencié": 3114,
+        "Agricole": 89,
+        "Résidentiel": 1425,
+        "Annexe": 387,
+        "Commercial et services": 69,
+        "Industriel": 36,
+        "Sportif": 2
+      }
+    },
+    "routes": {
+      "n_troncons_coupes": 3563,
+      "par_nature": {
+        "Route empierrée": 498,
+        "Chemin": 929,
+        "Route à 1 chaussée": 1652,
+        "Sentier": 373,
+        "Rond-point": 28,
+        "Route à 2 chaussées": 23,
+        "Bretelle": 12,
+        "Type autoroutier": 31,
+        "Escalier": 4,
+        "Bac ou liaison maritime": 13
+      },
+      "routes_nommees_coupees": []
+    },
+    "infrastructures_critiques": [],
+    "reseaux_critiques": {
+      "source": "OpenStreetMap Overpass API",
+      "date_fetch": "2026-03-30",
+      "electrique": {
+        "n_touches": 0,
+        "details": []
+      },
+      "eau": {
+        "n_touches": 0,
+        "details": []
+      },
+      "secours_sante": {
+        "n_touches": 0,
+        "details": []
+      }
+    }
+  }
+}

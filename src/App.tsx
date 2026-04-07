@@ -12,9 +12,10 @@ type View = '2d' | '3d'
 export default function App() {
   const [view, setView] = useState<View>('2d')
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
-    'shom-bathymetrie': false,
     'ppri-zones': true,
     'ppri-fill': true,
+    'critical-networks-layer': true,
+    'flood-tiles-layer': true,
   })
 
   const toggleLayer = (id: LayerId) => {
@@ -23,11 +24,39 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <ViewToggle current={view} onChange={setView} />
+      {/* Carte — plein écran */}
       {view === '2d' && <Map2D layers={layers} />}
       {view === '3d' && <Map3D />}
-      {view === '2d' && <Legend />}
-      {view === '2d' && <LayerControl layers={layers} onToggle={toggleLayer} />}
+
+      {/* ViewToggle — toujours visible en haut à gauche */}
+      <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 100 }}>
+        <ViewToggle current={view} onChange={setView} />
+      </div>
+
+      {/* Panels 2D uniquement */}
+      {view === '2d' && (
+        <>
+          {/* Légende — bas gauche */}
+          <div style={{
+            position: 'absolute',
+            bottom: 48,
+            left: 16,
+            zIndex: 10,
+          }}>
+            <Legend />
+          </div>
+
+          {/* LayerControl — bas droite */}
+          <div style={{
+            position: 'absolute',
+            bottom: 48,
+            right: 16,
+            zIndex: 10,
+          }}>
+            <LayerControl layers={layers} onToggle={toggleLayer} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
