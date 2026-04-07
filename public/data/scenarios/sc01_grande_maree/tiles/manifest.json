@@ -1,0 +1,12 @@
+{
+  "generated": "2026-03-30",
+  "zoom_min": 10,
+  "zoom_max": 13,
+  "tiles_per_zoom": {
+    "10": 4,
+    "11": 12,
+    "12": 42,
+    "13": 130
+  },
+  "total_tiles": 188
+}
