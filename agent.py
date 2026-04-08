@@ -307,7 +307,7 @@ def run_agent(question: str) -> str:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    print("Agent Géo-Twin Littoral — La Rochelle (tape 'exit' pour quitter)\n")
+    print("Agent Géo-Twin Littoral - La Rochelle (tape 'exit' pour quitter)\n")
     while True:
         question = input("Question : ").strip()
         if not question or question.lower() in ("exit", "quit", "q"):
