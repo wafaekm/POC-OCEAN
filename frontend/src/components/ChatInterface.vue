@@ -137,6 +137,7 @@ async function sendMessage() {
         role: 'agent',
         type: data.type ?? 'text',
         content: data.response,
+        visual: data.visual ?? null,
       }
     }
   } catch {
