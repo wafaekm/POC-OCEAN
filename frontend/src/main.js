@@ -3,7 +3,11 @@ import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import { definePreset } from '@primevue/themes'
 import 'primeicons/primeicons.css'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import { Chart, registerables } from 'chart.js'
 import App from './App.vue'
+
+Chart.register(...registerables)
 
 const OceanPreset = definePreset(Aura, {
   semantic: {

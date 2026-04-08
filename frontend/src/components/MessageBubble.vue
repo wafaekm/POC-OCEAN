@@ -32,28 +32,16 @@
         <p v-else class="bubble-text">{{ message.content }}</p>
       </div>
 
-      <!-- Map placeholder -->
-      <div v-else-if="message.type === 'map'" class="bubble agent-bubble placeholder-bubble">
-        <div class="placeholder-inner">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <line x1="8" y1="2" x2="8" y2="18" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
-            <line x1="16" y1="6" x2="16" y2="22" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          <span class="placeholder-label">Carte à venir</span>
-          <span class="placeholder-sub">Visualisation géospatiale</span>
-        </div>
+      <!-- Map -->
+      <div v-else-if="message.type === 'map'" class="bubble agent-bubble visual-bubble">
+        <div v-if="message.visual" class="bubble-text markdown" v-html="renderMarkdown(message.content)" />
+        <MapView :visual="message.visual" />
       </div>
 
-      <!-- Chart placeholder -->
-      <div v-else-if="message.type === 'chart'" class="bubble agent-bubble placeholder-bubble">
-        <div class="placeholder-inner">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <polyline points="22 12 18 12 15 20 9 4 6 12 2 12" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          </svg>
-          <span class="placeholder-label">Graphique à venir</span>
-          <span class="placeholder-sub">Données marégraphiques</span>
-        </div>
+      <!-- Chart -->
+      <div v-else-if="message.type === 'chart'" class="bubble agent-bubble visual-bubble">
+        <div v-if="message.visual" class="bubble-text markdown" v-html="renderMarkdown(message.content)" />
+        <ChartView :visual="message.visual" />
       </div>
 
     </div>
@@ -72,6 +60,8 @@
 <script setup>
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import MapView from './MapView.vue'
+import ChartView from './ChartView.vue'
 
 marked.use({ breaks: true })
 
@@ -134,6 +124,10 @@ function renderMarkdown(text) {
   display: flex;
   flex-direction: column;
   max-width: 72%;
+}
+
+.message-row.agent:has(.visual-bubble) .bubble-wrapper {
+  max-width: 90%;
 }
 
 .bubble-wrapper.user {
@@ -234,30 +228,9 @@ function renderMarkdown(text) {
   30%            { transform: translateY(-7px); opacity: 1; }
 }
 
-/* ── Placeholders ────────────────────────────────────────── */
-.placeholder-bubble {
-  min-width: 240px;
-  padding: 20px 24px;
-}
-
-.placeholder-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  opacity: 0.7;
-}
-
-.placeholder-label {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #22d3ee;
-  letter-spacing: 0.04em;
-}
-
-.placeholder-sub {
-  font-size: 0.73rem;
-  color: #4a8a9a;
-  letter-spacing: 0.02em;
+/* ── Visual bubbles (map / chart) ────────────────────────── */
+.visual-bubble {
+  padding: 14px 16px;
+  width: 100%;
 }
 </style>
