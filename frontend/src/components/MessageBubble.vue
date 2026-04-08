@@ -24,6 +24,7 @@
         <span class="dot"></span>
         <span class="dot"></span>
         <span class="dot"></span>
+        <span v-if="message.statusText" class="status-text">{{ message.statusText }}</span>
       </div>
 
       <!-- Text content -->
@@ -123,11 +124,12 @@ function renderMarkdown(text) {
 .bubble-wrapper {
   display: flex;
   flex-direction: column;
-  max-width: 72%;
+  max-width: 78%;
 }
 
 .message-row.agent:has(.visual-bubble) .bubble-wrapper {
-  max-width: 90%;
+  max-width: 96%;
+  width: 96%;
 }
 
 .bubble-wrapper.user {
@@ -208,6 +210,19 @@ function renderMarkdown(text) {
   gap: 6px;
   padding: 14px 18px;
   min-width: 64px;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  color: #67b8cc;
+  margin-left: 4px;
+  letter-spacing: 0.01em;
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 .dot {

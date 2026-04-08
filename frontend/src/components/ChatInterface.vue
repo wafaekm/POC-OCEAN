@@ -34,18 +34,59 @@
 
     <!-- Messages -->
     <main class="messages-area" ref="scrollContainer">
-      <div class="messages-inner">
+
+      <!-- Écran de bienvenue (conversation vierge) -->
+      <div v-if="isWelcomeScreen" class="welcome-screen">
+        <div class="welcome-icon">
+          <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
+            <line x1="14" y1="2" x2="14" y2="5.5" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="14" cy="1.8" r="1.2" fill="#22d3ee"/>
+            <rect x="7" y="6" width="14" height="10" rx="3" stroke="#22d3ee" stroke-width="1.8" fill="rgba(34,211,238,0.08)"/>
+            <circle cx="11" cy="11" r="1.7" fill="#22d3ee"/>
+            <circle cx="17" cy="11" r="1.7" fill="#22d3ee"/>
+            <circle cx="11.6" cy="10.4" r="0.6" fill="#040d1f"/>
+            <circle cx="17.6" cy="10.4" r="0.6" fill="#040d1f"/>
+            <path d="M3 21c2-2 3.5-2 5.5 0s3.5 2 5.5 0 3.5-2 5.5 0 3.5 2 5.5 0" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <path d="M3 25c2-2 3.5-2 5.5 0s3.5 2 5.5 0 3.5-2 5.5 0 3.5 2 5.5 0" stroke="#22d3ee" stroke-width="1.1" stroke-linecap="round" opacity=".4" fill="none"/>
+          </svg>
+        </div>
+        <h2 class="welcome-title">Comment puis-je vous aider ?</h2>
+        <p class="welcome-sub">Posez une question sur la marée, les risques côtiers ou le niveau marin</p>
+        <div class="welcome-chips">
+          <button
+            v-for="s in DEFAULT_SUGGESTIONS"
+            :key="s"
+            class="chip chip--welcome"
+            @click="sendSuggestion(s)"
+          >{{ s }}</button>
+        </div>
+      </div>
+
+      <!-- Messages normaux -->
+      <div v-else class="messages-inner">
         <MessageBubble
           v-for="msg in messages"
           :key="msg.id"
           :message="msg"
         />
       </div>
+
       <div ref="messagesEnd" />
     </main>
 
     <!-- Input -->
     <footer class="input-area">
+
+      <!-- Suggestions contextuelles -->
+      <div v-if="!isWelcomeScreen && currentSuggestions.length && !isLoading" class="suggestions-bar">
+        <button
+          v-for="s in currentSuggestions"
+          :key="s"
+          class="chip chip--inline"
+          @click="sendSuggestion(s)"
+        >{{ s }}</button>
+      </div>
+
       <div class="input-wrapper">
         <InputText
           ref="inputRef"
@@ -75,12 +116,27 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import MessageBubble from './MessageBubble.vue'
 
 const BACKEND_URL = 'http://localhost:8000'
+
+const TOOL_LABELS = {
+  get_maree_actuelle:         'marée actuelle',
+  get_maree_pour_date:        'données marée',
+  get_coastal_infrastructure: 'carte infrastructures',
+  get_sea_level_trend:        'tendance niveau marin',
+  get_current_datetime:       'date et heure',
+}
+
+const DEFAULT_SUGGESTIONS = [
+  "Quelle est la marée actuelle ?",
+  "Prédiction marée demain à 14h",
+  "Afficher la carte des infrastructures côtières",
+  "Tendance du niveau marin sur 30 ans",
+]
 
 const messages = ref([
   {
@@ -94,18 +150,29 @@ const messages = ref([
   },
 ])
 
-const inputText   = ref('')
-const isLoading   = ref(false)
-const scrollContainer = ref(null)
-const messagesEnd = ref(null)
-const inputRef    = ref(null)
+const inputText        = ref('')
+const isLoading        = ref(false)
+const currentSuggestions = ref([])
+const scrollContainer  = ref(null)
+const messagesEnd      = ref(null)
+const inputRef         = ref(null)
 
 let nextId = 1
+
+// Affiche l'écran de bienvenue tant que seul le message d'accueil est présent
+const isWelcomeScreen = computed(() => messages.value.length === 1)
 
 function scrollToBottom() {
   nextTick(() => {
     messagesEnd.value?.scrollIntoView({ behavior: 'smooth' })
   })
+}
+
+function setStatus(id, text) {
+  const idx = messages.value.findIndex(m => m.id === id)
+  if (idx !== -1 && messages.value[idx].loading) {
+    messages.value[idx].statusText = text
+  }
 }
 
 async function sendMessage() {
@@ -115,38 +182,76 @@ async function sendMessage() {
   messages.value.push({ id: nextId++, role: 'user', type: 'text', content: text })
   inputText.value = ''
   isLoading.value = true
+  currentSuggestions.value = []
 
   const loadingId = nextId++
-  messages.value.push({ id: loadingId, role: 'agent', type: 'text', content: '', loading: true })
+  messages.value.push({ id: loadingId, role: 'agent', type: 'text', content: '', loading: true, statusText: 'Connexion…' })
   scrollToBottom()
 
   try {
-    const res = await fetch(`${BACKEND_URL}/chat`, {
+    const res = await fetch(`${BACKEND_URL}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text, history: [] }),
     })
-
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-    const data = await res.json()
-    const idx = messages.value.findIndex(m => m.id === loadingId)
-    if (idx !== -1) {
-      messages.value[idx] = {
-        id: loadingId,
-        role: 'agent',
-        type: data.type ?? 'text',
-        content: data.response,
-        visual: data.visual ?? null,
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop()
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        let event
+        try { event = JSON.parse(line.slice(6)) } catch { continue }
+
+        if (event.type === 'done') {
+          const data = event.result
+          const idx = messages.value.findIndex(m => m.id === loadingId)
+          if (idx !== -1) {
+            messages.value[idx] = {
+              id: loadingId,
+              role: 'agent',
+              type: data.type ?? 'text',
+              content: data.text,
+              visual: data.visual ?? null,
+            }
+          }
+          currentSuggestions.value = data.suggestions ?? []
+          scrollToBottom()
+        } else if (event.type === 'thinking') {
+          setStatus(loadingId, 'Interrogation de Mistral…')
+        } else if (event.type === 'tool_call') {
+          const label = TOOL_LABELS[event.message] ?? event.message
+          setStatus(loadingId, `Outil : ${label}…`)
+        } else if (event.type === 'tool_result') {
+          const label = TOOL_LABELS[event.message] ?? event.message
+          setStatus(loadingId, `${label} ✓`)
+        } else if (event.type === 'retry') {
+          setStatus(loadingId, event.message)
+        } else if (event.type === 'error') {
+          const idx = messages.value.findIndex(m => m.id === loadingId)
+          if (idx !== -1) {
+            messages.value[idx] = {
+              id: loadingId, role: 'agent', type: 'text',
+              content: "Une erreur est survenue. Veuillez réessayer.",
+            }
+          }
+        }
       }
     }
   } catch {
     const idx = messages.value.findIndex(m => m.id === loadingId)
     if (idx !== -1) {
       messages.value[idx] = {
-        id: loadingId,
-        role: 'agent',
-        type: 'text',
+        id: loadingId, role: 'agent', type: 'text',
         content: "Impossible de joindre le serveur. Vérifiez que le backend est démarré sur le port 8000.",
       }
     }
@@ -155,6 +260,11 @@ async function sendMessage() {
     scrollToBottom()
     nextTick(() => inputRef.value?.$el?.focus())
   }
+}
+
+function sendSuggestion(text) {
+  inputText.value = text
+  sendMessage()
 }
 
 function onKeydown(event) {
@@ -265,15 +375,112 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 820px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 20px;
+}
+
+/* ── Welcome screen ──────────────────────────────────────── */
+.welcome-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 16px;
+}
+
+.welcome-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  margin-bottom: 4px;
+}
+
+.welcome-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2f0fb;
+  letter-spacing: 0.01em;
+}
+
+.welcome-sub {
+  font-size: 0.85rem;
+  color: #67b8cc;
+  max-width: 380px;
+}
+
+.welcome-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 600px;
+  margin-top: 8px;
+}
+
+/* ── Suggestion chips ────────────────────────────────────── */
+.chip {
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.chip--welcome {
+  padding: 10px 18px;
+  font-size: 0.85rem;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  color: #a8dcea;
+}
+
+.chip--welcome:hover {
+  background: rgba(34, 211, 238, 0.16);
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #e2f0fb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.12);
+}
+
+.chip--inline {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  color: #7ec8da;
+}
+
+.chip--inline:hover {
+  background: rgba(34, 211, 238, 0.13);
+  border-color: rgba(34, 211, 238, 0.4);
+  color: #d8eef9;
+  transform: translateY(-1px);
+}
+
+/* ── Suggestions bar ─────────────────────────────────────── */
+.suggestions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 820px;
+  margin: 0 auto 10px;
+  padding: 0 4px;
 }
 
 /* ── Input area ──────────────────────────────────────────── */
 .input-area {
   flex-shrink: 0;
-  padding: 16px 24px 12px;
+  padding: 12px 24px 12px;
   background: rgba(7, 22, 48, 0.9);
   backdrop-filter: blur(12px);
   border-top: 1px solid rgba(34, 211, 238, 0.12);
@@ -283,7 +490,7 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
-  max-width: 820px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
