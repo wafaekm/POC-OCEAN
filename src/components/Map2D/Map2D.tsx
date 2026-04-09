@@ -8,8 +8,7 @@
  const LA_ROCHELLE_CENTER: [number, number] = [-1.1528, 46.1591]
  const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY
  const BDTOPO_WFS   = 'https://data.geopf.fr/wfs/ows'
- const BDTOPO_MIN_ZOOM = 13  // n'affiche les bâtiments qu'à partir de ce zoom
- 
+ const BDTOPO_MIN_ZOOM = 6
  // ─── TYPES ───────────────────────────────────────────────────────────────────
  interface Scenario {
    id: string
