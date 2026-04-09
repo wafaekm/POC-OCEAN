@@ -1,0 +1,362 @@
+/* ═══════════════════════════════════════════════════
+   WW3 LEGEND COMPONENT
+═══════════════════════════════════════════════════ */
+
+.ww3-legend {
+  position: absolute;
+  bottom: 200px;
+  right: 16px;
+  width: 260px;
+  background: rgba(10, 14, 28, 0.95);
+  border: 1px solid rgba(0, 180, 255, 0.22);
+  border-radius: 12px;
+  padding: 0;
+  z-index: 10;
+  backdrop-filter: blur(16px);
+  font-family: sans-serif;
+  color: #d8f0ff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0,200,255,0.05);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+/* ── Header ── */
+.wl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 180, 255, 0.1);
+  background: rgba(0, 200, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.wl-header:hover {
+  background: rgba(0, 200, 255, 0.08);
+}
+
+.wl-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wl-dot {
+  width: 7px;
+  height: 7px;
+  background: #00c8ff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #00c8ff;
+  animation: wl-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wl-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
+}
+
+.wl-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #00c8ff;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wl-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wl-info-btn {
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 200, 255, 0.12);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  border-radius: 50%;
+  color: #00c8ff;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.wl-info-btn:hover {
+  background: rgba(0, 200, 255, 0.25);
+}
+
+.wl-chevron {
+  font-size: 8px;
+  color: rgba(216, 240, 255, 0.4);
+}
+
+/* ── Info panel ── */
+.wl-info-panel {
+  padding: 10px 14px;
+  background: rgba(0, 50, 100, 0.2);
+  border-bottom: 1px solid rgba(0, 180, 255, 0.1);
+}
+
+.wl-info-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: #00c8ff;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 7px;
+}
+
+.wl-info-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 9px;
+  color: rgba(216, 240, 255, 0.7);
+}
+
+.wl-info-key {
+  font-weight: 700;
+  color: #00c8ff;
+  min-width: 32px;
+  font-size: 10px;
+}
+
+.wl-info-formula {
+  margin-top: 8px;
+  padding: 5px 8px;
+  background: rgba(0, 200, 255, 0.06);
+  border-radius: 4px;
+  border-left: 2px solid rgba(0, 200, 255, 0.4);
+  font-size: 9px;
+  color: rgba(216, 240, 255, 0.6);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.02em;
+}
+
+/* ── Variable tabs ── */
+.wl-tabs {
+  display: flex;
+  gap: 0;
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid rgba(0, 180, 255, 0.1);
+}
+
+.wl-tab {
+  flex: 1;
+  padding: 4px 2px;
+  background: transparent;
+  border: 1px solid rgba(0, 180, 255, 0.15);
+  color: rgba(216, 240, 255, 0.45);
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+  letter-spacing: 0.04em;
+  border-radius: 0;
+}
+
+.wl-tab:first-child { border-radius: 4px 0 0 4px; }
+.wl-tab:last-child  { border-radius: 0 4px 4px 0; }
+
+.wl-tab:hover {
+  background: rgba(0, 200, 255, 0.1);
+  color: #00c8ff;
+}
+
+.wl-tab.active {
+  background: rgba(0, 200, 255, 0.18);
+  border-color: #00c8ff;
+  color: #00c8ff;
+}
+
+/* ── Colorbar gradient ── */
+.wl-colorbar-wrap {
+  padding: 8px 14px 14px;
+  position: relative;
+}
+
+.wl-colorbar {
+  width: 100%;
+  height: 14px;
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.wl-colorbar-labels {
+  position: relative;
+  height: 16px;
+  margin-top: 4px;
+}
+
+.wl-cb-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 7px;
+  color: rgba(216, 240, 255, 0.5);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* ── Description ── */
+.wl-var-desc {
+  padding: 0 14px 10px;
+  font-size: 9px;
+  color: rgba(216, 240, 255, 0.55);
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(0, 180, 255, 0.08);
+  margin-bottom: 8px;
+}
+
+/* ── Stops list ── */
+.wl-stops {
+  padding: 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.wl-stop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+}
+
+.wl-stop-swatch {
+  width: 24px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.wl-stop-value {
+  color: rgba(216, 240, 255, 0.8);
+  min-width: 52px;
+  font-family: 'Courier New', monospace;
+  font-size: 8px;
+}
+
+.wl-stop-label {
+  color: rgba(216, 240, 255, 0.45);
+  font-size: 8px;
+}
+
+/* ── Note ── */
+.wl-note {
+  margin: 0 14px 10px;
+  padding: 5px 8px;
+  background: rgba(0, 200, 255, 0.05);
+  border-radius: 4px;
+  border-left: 2px solid rgba(0, 200, 255, 0.3);
+  font-size: 8px;
+  color: rgba(216, 240, 255, 0.5);
+  line-height: 1.4;
+}
+
+/* ── Sea states table ── */
+.wl-sea-states {
+  margin: 0 14px 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 180, 255, 0.08);
+}
+
+.wl-sea-title {
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(0, 200, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+
+.wl-sea-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 9px;
+}
+
+.wl-sea-row:last-child { margin-bottom: 0; }
+
+.wl-sea-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wl-sea-hs {
+  color: rgba(216, 240, 255, 0.6);
+  min-width: 80px;
+  font-family: 'Courier New', monospace;
+  font-size: 8px;
+}
+
+.wl-sea-state {
+  color: #d8f0ff;
+  font-weight: 600;
+}
+
+/* ── Compass rose (direction) ── */
+.wl-compass {
+  margin: 0 14px 10px;
+  display: flex;
+  justify-content: center;
+}
+
+.wl-compass-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border: 1px solid rgba(0, 180, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(0, 200, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wl-compass-point {
+  position: absolute;
+  font-size: 7px;
+  color: rgba(216, 240, 255, 0.6);
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 50%;
+  left: 50%;
+  margin: -10px 0 0 -10px;
+}
+
+.wl-compass-center {
+  font-size: 7px;
+  color: #00c8ff;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* ── Source ── */
+.wl-source {
+  padding: 6px 14px;
+  font-size: 7px;
+  color: rgba(216, 240, 255, 0.25);
+  letter-spacing: 0.06em;
+  border-top: 1px solid rgba(0, 180, 255, 0.08);
+  background: rgba(0, 0, 0, 0.1);
+}
