@@ -91,6 +91,123 @@
 }
 
 /* ═══════════════════════════════════════════════════
+   PANEL BÂTIMENTS BD TOPO IGN
+═══════════════════════════════════════════════════ */
+.bdtopo-panel {
+  position: absolute;
+  top: 160px;
+  right: 16px;
+  width: 240px;
+  background: rgba(15, 15, 28, 0.93);
+  border: 1px solid rgba(100, 200, 120, 0.25);
+  border-radius: 10px;
+  padding: 12px 14px;
+  z-index: 10;
+  backdrop-filter: blur(14px);
+  font-family: sans-serif;
+  color: #d8f0ff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.bdtopo-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.bdtopo-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6adc88;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bdtopo-subtitle {
+  font-size: 8px;
+  color: rgba(216, 240, 255, 0.35);
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+.bdtopo-toggle {
+  background: rgba(100, 200, 120, 0.08);
+  border: 1px solid rgba(100, 200, 120, 0.3);
+  color: rgba(216, 240, 255, 0.45);
+  padding: 3px 11px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.bdtopo-toggle:hover {
+  background: rgba(100, 200, 120, 0.15);
+  border-color: #6adc88;
+  color: #6adc88;
+}
+
+.bdtopo-toggle.active {
+  background: #6adc88;
+  border-color: #6adc88;
+  color: #04080f;
+}
+
+.bdtopo-info {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(100, 200, 120, 0.12);
+}
+
+.bdtopo-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  margin-bottom: 4px;
+  color: rgba(216, 240, 255, 0.5);
+}
+
+.bdtopo-count {
+  color: #6adc88;
+  font-weight: 700;
+}
+
+.bdtopo-legend {
+  margin: 8px 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bdtopo-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  color: rgba(216, 240, 255, 0.65);
+}
+
+.bdtopo-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.bdtopo-note {
+  font-size: 8px;
+  color: rgba(216, 240, 255, 0.3);
+  line-height: 1.5;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ═══════════════════════════════════════════════════
    PANEL WW3 — juste sous le panel scénarios
    top calculé : 72px (top scenario) + hauteur variable
    On utilise top: auto + margin via positionnement absolu
@@ -99,7 +216,7 @@
   position: absolute;
   /* Positionné sous le scenario-panel.
      Ajuste top si ton scenario-panel est plus ou moins haut. */
-  top: 370px;
+  top: 540px; /* sous bdtopo-panel */
   left: 16px;
   width: 240px;
   background: rgba(15, 15, 28, 0.93);
