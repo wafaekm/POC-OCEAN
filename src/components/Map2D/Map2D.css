@@ -216,7 +216,7 @@
   position: absolute;
   /* Positionné sous le scenario-panel.
      Ajuste top si ton scenario-panel est plus ou moins haut. */
-  top: 540px; /* sous bdtopo-panel */
+  top: 400px; /* sous bdtopo-panel */
   left: 16px;
   width: 240px;
   background: rgba(15, 15, 28, 0.93);
