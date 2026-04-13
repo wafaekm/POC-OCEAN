@@ -124,18 +124,21 @@ import MessageBubble from './MessageBubble.vue'
 const BACKEND_URL = 'http://localhost:8000'
 
 const TOOL_LABELS = {
-  get_maree_actuelle:         'marée actuelle',
-  get_maree_pour_date:        'données marée',
-  get_coastal_infrastructure: 'carte infrastructures',
-  get_sea_level_trend:        'tendance niveau marin',
-  get_current_datetime:       'date et heure',
+  get_maree_actuelle:     'marée actuelle',
+  get_maree_pour_date:    'données marée',
+  get_current_datetime:   'date et heure',
+  get_flood_scenarios:    'scénarios de submersion',
+  get_flood_zones:        'zones PPRI',
+  get_critical_networks:  'infrastructures critiques',
+  get_xynthia_simulation: 'simulation Xynthia',
 }
 
 const DEFAULT_SUGGESTIONS = [
   "Quelle est la marée actuelle ?",
-  "Prédiction marée demain à 14h",
-  "Afficher la carte des infrastructures côtières",
-  "Tendance du niveau marin sur 30 ans",
+  "Scénarios de submersion",
+  "Zones à risque PPRI",
+  "Infrastructures critiques",
+  "Simulation Xynthia",
 ]
 
 const messages = ref([

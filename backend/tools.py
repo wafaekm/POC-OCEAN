@@ -12,17 +12,18 @@ Pour ajouter un outil :
 import os
 import json
 import glob
-import math
-import random
 import logging
 import urllib.request
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-# Données SHOM locales (fichiers JSON pré-téléchargés)
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "data", "maregraphie"
+)
+PUBLIC_DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "public", "data"
 )
 
 # ── Constantes marée ────────────────────────────────────────────────────────
@@ -31,7 +32,6 @@ MAREE_BASSE   = 2.07
 MAREE_MOYENNE = 4.00
 MAREE_HAUTE   = 5.63
 
-# Données locales validées jusqu'au 31/12/2025 ; au-delà → API SHOM
 CUTOFF = datetime(2026, 1, 1)
 
 SHOM_OBS     = "https://services.data.shom.fr/maregraphie/observation/json/34?sources=2&dtStart={start}&dtEnd={end}"
@@ -50,7 +50,6 @@ def _phase(h: float) -> str:
 
 
 def _fetch_shom(date_start: datetime, date_end: datetime, predict: bool = False) -> list[dict]:
-    """Appelle l'API SHOM et rééchantillonne à l'heure."""
     template = SHOM_PREDICT if predict else SHOM_OBS
     entries = []
     cursor = date_start
@@ -81,7 +80,6 @@ def _fetch_shom(date_start: datetime, date_end: datetime, predict: bool = False)
 
         cursor = chunk_end + timedelta(days=1)
 
-    # Rééchantillonnage horaire
     bins: dict = defaultdict(list)
     for e in entries:
         bins[e["ts"].replace(minute=0, second=0, microsecond=0)].append(e["value"])
@@ -93,7 +91,6 @@ def _fetch_shom(date_start: datetime, date_end: datetime, predict: bool = False)
 
 
 def _read_local_files() -> list[dict]:
-    """Lit les fichiers JSON locaux (données ≤ 2025)."""
     entries = []
     for filepath in sorted(glob.glob(os.path.join(DATA_DIR, "34_*.json")), reverse=True):
         try:
@@ -116,6 +113,30 @@ def _closest_entry(entries: list[dict], target: datetime) -> dict | None:
             best_diff = diff
             best = entry
     return best
+
+
+def _geojson_to_points(geojson: dict) -> dict:
+    """Normalise un FeatureCollection en points (centroïde pour les polygones)."""
+    point_features = []
+    for feat in geojson.get("features", []):
+        geom = feat.get("geometry", {})
+        gtype = geom.get("type", "")
+        if gtype == "Point":
+            coords = geom["coordinates"]
+        elif gtype == "Polygon":
+            ring = geom["coordinates"][0]
+            coords = [sum(c[0] for c in ring) / len(ring), sum(c[1] for c in ring) / len(ring)]
+        elif gtype == "MultiPolygon":
+            ring = geom["coordinates"][0][0]
+            coords = [sum(c[0] for c in ring) / len(ring), sum(c[1] for c in ring) / len(ring)]
+        else:
+            continue
+        point_features.append({
+            "type": "Feature",
+            "properties": feat.get("properties", {}),
+            "geometry": {"type": "Point", "coordinates": coords},
+        })
+    return {"type": "FeatureCollection", "features": point_features}
 
 
 # ── Cache marée actuelle ─────────────────────────────────────────────────────
@@ -157,7 +178,6 @@ def get_current_datetime() -> dict:
 # ── Fonctions outils : marée ─────────────────────────────────────────────────
 
 def get_maree_actuelle() -> dict:
-    """Hauteur de marée la plus proche de maintenant (fichiers locaux ou API SHOM)."""
     global _maree_cache, _maree_cache_ts
     now = datetime.now()
 
@@ -191,7 +211,6 @@ def get_maree_actuelle() -> dict:
 
 
 def get_maree_pour_date(date: str, heure: str = "12:00") -> dict:
-    """Hauteur de marée pour une date et heure précises (passé ou futur)."""
     try:
         target = datetime.strptime(f"{date} {heure}", "%Y-%m-%d %H:%M")
     except ValueError:
@@ -228,75 +247,148 @@ def get_maree_pour_date(date: str, heure: str = "12:00") -> dict:
     }
 
 
-# ── Fonctions outils : visualisation ─────────────────────────────────────────
+# ── Fonctions outils : données géo réelles ───────────────────────────────────
 
-
-def get_coastal_infrastructure(radius_km: float) -> dict:
+def get_flood_scenarios() -> dict:
     """
-    Infrastructures côtières (ports, digues, stations) autour de La Rochelle.
-    Retourne GeoJSON points + métadonnées carte.
+    Scénarios de submersion marine pour La Rochelle.
+    Source : public/data/scenarios/index.json (données réelles).
+    Retourne un graphique comparatif des niveaux d'eau par scénario.
     """
-    all_infra = [
-        {"name": "Port de La Pallice",           "type": "Port industriel",             "lon": -1.227, "lat": 46.167, "risk": "élevé"},
-        {"name": "Tour de la Lanterne",           "type": "Monument côtier",             "lon": -1.154, "lat": 46.157, "risk": "modéré"},
-        {"name": "Station marégraphique SHOM",    "type": "Station de mesure",           "lon": -1.232, "lat": 46.155, "risk": "faible"},
-        {"name": "Digue de Chef-de-Baie",         "type": "Ouvrage de protection",       "lon": -1.196, "lat": 46.164, "risk": "élevé"},
-        {"name": "Port des Minimes",              "type": "Port de plaisance",           "lon": -1.168, "lat": 46.148, "risk": "modéré"},
-        {"name": "Station météo La Rochelle",     "type": "Station de mesure",           "lon": -1.195, "lat": 46.178, "risk": "faible"},
-        {"name": "Écluse du Gabut",               "type": "Ouvrage de protection",       "lon": -1.150, "lat": 46.159, "risk": "modéré"},
-        {"name": "Terminal pétrolier La Pallice", "type": "Infrastructure industrielle", "lon": -1.219, "lat": 46.161, "risk": "élevé"},
-        {"name": "Plage de La Concurrence",       "type": "Zone de loisirs",             "lon": -1.162, "lat": 46.153, "risk": "élevé"},
-        {"name": "Vieux-Port de La Rochelle",     "type": "Port historique",             "lon": -1.151, "lat": 46.157, "risk": "modéré"},
-    ]
-    cx, cy = -1.15, 46.16
-    features = [
-        {
-            "type": "Feature",
-            "properties": {"name": i["name"], "type": i["type"], "risk": i["risk"]},
-            "geometry": {"type": "Point", "coordinates": [i["lon"], i["lat"]]},
-        }
-        for i in all_infra
-        if math.sqrt(
-            ((i["lon"] - cx) * 111 * math.cos(math.radians(cy))) ** 2
-            + ((i["lat"] - cy) * 111) ** 2
-        ) <= radius_km
-    ]
-    return {
-        "geojson": {"type": "FeatureCollection", "features": features},
-        "center": [-1.18, 46.16],
-        "zoom": 12,
-        "layer_type": "circle",
-        "summary": f"{len(features)} infrastructures côtières dans un rayon de {radius_km}km autour de La Rochelle.",
-    }
+    path = os.path.join(PUBLIC_DATA_DIR, "scenarios", "index.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            scenarios = json.load(f)
+    except Exception as e:
+        return {"error": f"Impossible de lire les scénarios : {e}"}
 
+    labels = [s["label"] for s in scenarios]
+    values = [round(s["niveau_m"], 3) for s in scenarios]
 
-def get_sea_level_trend(station: str, years: int, chart_type: str = "line") -> dict:
-    """
-    Tendance d'élévation du niveau marin (données simulées).
-    chart_type : type Chart.js — "line", "bar", "radar", "pie", "doughnut", "polarArea", etc.
-    Choisir le type le plus adapté à la question posée.
-    """
-    rng = random.Random(42)
-    current_year = 2025
-    start_year = max(current_year - years, 1960)
-    trend_mm_per_year = 3.2
+    descriptions = []
+    for s in scenarios:
+        descriptions.append(f"{s['label']} : {s['niveau_m']} m NGF")
 
-    labels, values = [], []
-    for y in range(start_year, current_year + 1):
-        labels.append(str(y))
-        anomaly = (y - start_year) * trend_mm_per_year + rng.gauss(0, 8)
-        values.append(round(anomaly, 1))
-
-    total_rise = (current_year - start_year) * trend_mm_per_year
     return {
         "labels": labels,
         "values": values,
-        "chart_type": chart_type,
-        "unit": "mm",
-        "station": station,
+        "chart_type": "bar",
+        "unit": "m NGF",
+        "station": "La Rochelle",
         "summary": (
-            f"Tendance du niveau marin à {station} sur {current_year - start_year} ans : "
-            f"+{trend_mm_per_year}mm/an en moyenne, soit +{total_rise:.0f}mm au total."
+            f"{len(scenarios)} scénarios de submersion marine disponibles pour La Rochelle. "
+            f"Du niveau le plus bas ({min(values)} m NGF — {labels[values.index(min(values))]}) "
+            f"au plus élevé ({max(values)} m NGF — {labels[values.index(max(values))]}). "
+            "Données issues du modèle HOMONIM (SHOM/Météo-France)."
+        ),
+    }
+
+
+def get_flood_zones() -> dict:
+    """
+    Zones de risque PPRI (Plan de Prévention des Risques d'Inondation) de La Rochelle.
+    Source : public/data/ppri.geojson (données officielles approuvées).
+    Retourne une carte des périmètres PPRI submersion marine.
+    """
+    path = os.path.join(PUBLIC_DATA_DIR, "ppri.geojson")
+    try:
+        with open(path, encoding="utf-8") as f:
+            geojson = json.load(f)
+    except Exception as e:
+        return {"error": f"Impossible de lire le PPRI : {e}"}
+
+    features = geojson.get("features", [])
+    communes = list({f["properties"].get("libelle_commune", "") for f in features})
+    noms_ppr = [f["properties"].get("nom_ppr", "") for f in features]
+
+    return {
+        "geojson": geojson,
+        "center": [-1.15, 46.17],
+        "zoom": 11,
+        "layer_type": "fill",
+        "summary": (
+            f"{len(features)} périmètres PPRI approuvés couvrant La Rochelle et communes limitrophes "
+            f"({', '.join(c for c in communes if c)}). "
+            "Tous classés risques littoraux — érosion côtière et submersion marine. "
+            "Source : GASPAR / DDTM 17."
+        ),
+    }
+
+
+def get_critical_networks() -> dict:
+    """
+    Réseaux et infrastructures critiques de La Rochelle (données OSM réelles).
+    Source : public/data/critical_networks.geojson.
+    Retourne une carte des équipements sensibles (eau, énergie, transports).
+    """
+    path = os.path.join(PUBLIC_DATA_DIR, "critical_networks.geojson")
+    try:
+        with open(path, encoding="utf-8") as f:
+            geojson = json.load(f)
+    except Exception as e:
+        return {"error": f"Impossible de lire les réseaux critiques : {e}"}
+
+    point_geojson = _geojson_to_points(geojson)
+    features = point_geojson["features"]
+
+    categories = defaultdict(int)
+    for feat in features:
+        cat = feat["properties"].get("category", "autre")
+        categories[cat] += 1
+
+    cat_summary = ", ".join(f"{v} {k}" for k, v in sorted(categories.items()))
+
+    return {
+        "geojson": point_geojson,
+        "center": [-1.16, 46.16],
+        "zoom": 12,
+        "layer_type": "circle",
+        "summary": (
+            f"{len(features)} infrastructures critiques identifiées sur La Rochelle ({cat_summary}). "
+            "Données OpenStreetMap. Ces équipements sont prioritaires dans l'évaluation "
+            "du risque de submersion."
+        ),
+    }
+
+
+def get_xynthia_simulation() -> dict:
+    """
+    Simulation de la tempête Xynthia sur La Rochelle Nord (MNT HOMONIM 20m, WGS84).
+    Source : public/data/larochelle_xynthia/ (simulation hydraulique réelle).
+    Retourne un graphique de la progression de la submersion frame par frame.
+    """
+    meta_path   = os.path.join(PUBLIC_DATA_DIR, "larochelle_xynthia", "flood_metadata.json")
+    frames_path = os.path.join(PUBLIC_DATA_DIR, "larochelle_xynthia", "water_mesh_frames.json")
+
+    try:
+        with open(meta_path, encoding="utf-8") as f:
+            meta = json.load(f)
+        with open(frames_path, encoding="utf-8") as f:
+            frames_data = json.load(f)
+    except Exception as e:
+        return {"error": f"Impossible de lire la simulation Xynthia : {e}"}
+
+    frames = frames_data.get("frames", [])
+    labels = [fr.get("ts", f"t={fr['t']:.2f}") for fr in frames]
+    values = [fr.get("n_flooded", 0) for fr in frames]
+
+    bbox = meta.get("bbox", {})
+    wse  = meta.get("wse_range", {})
+
+    return {
+        "labels": labels,
+        "values": values,
+        "chart_type": "line",
+        "unit": "cellules inondées",
+        "station": "La Rochelle Nord — Xynthia",
+        "summary": (
+            f"Simulation hydraulique Xynthia sur La Rochelle Nord "
+            f"(emprise : lon [{bbox.get('lon_min')} → {bbox.get('lon_max')}], "
+            f"lat [{bbox.get('lat_min')} → {bbox.get('lat_max')}]). "
+            f"{len(frames)} frames — de {values[0]} cellules inondées initialement "
+            f"à {max(values)} au pic. "
+            f"Niveau d'eau simulé : {wse.get('min')} m à {wse.get('max')} m NGF. "
+            f"Maillage : {meta.get('n_cells', '?')} cellules HOMONIM 20m."
         ),
     }
 
@@ -320,7 +412,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "get_maree_actuelle",
-            "description": "Retourne la hauteur actuelle de la marée à La Rochelle (données SHOM).",
+            "description": "Retourne la hauteur actuelle de la marée à La Rochelle (données SHOM réelles).",
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
@@ -330,7 +422,6 @@ TOOLS = [
             "name": "get_maree_pour_date",
             "description": (
                 "Retourne la hauteur de marée à La Rochelle pour une date et heure précises. "
-                "Utiliser pour 'hier', 'demain', ou toute date spécifique. "
                 "Passé : données réelles SHOM. Futur : prédictions SHOM."
             ),
             "parameters": {
@@ -346,49 +437,49 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "get_coastal_infrastructure",
+            "name": "get_flood_scenarios",
             "description": (
-                "Affiche une carte des infrastructures côtières (ports, digues, stations) "
-                "autour de La Rochelle avec leur niveau de risque de submersion."
+                "Affiche un graphique comparatif des scénarios de submersion marine pour La Rochelle : "
+                "grande marée, Xynthia, IPCC 2050/2100, pire cas. "
+                "Données réelles issues du modèle HOMONIM (SHOM/Météo-France)."
             ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "radius_km": {
-                        "type": "number",
-                        "description": "Rayon de recherche en kilomètres (ex: 10)",
-                    },
-                },
-                "required": ["radius_km"],
-            },
+            "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
     {
         "type": "function",
         "function": {
-            "name": "get_sea_level_trend",
+            "name": "get_flood_zones",
             "description": (
-                "Affiche un graphique de la tendance d'élévation du niveau de la mer "
-                "sur plusieurs années pour une station marégraphique."
+                "Affiche la carte des zones PPRI (Plan de Prévention des Risques d'Inondation) "
+                "approuvées sur La Rochelle et communes limitrophes. "
+                "Données officielles GASPAR/DDTM 17 — risques littoraux réels."
             ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "station":    {"type": "string", "description": "Nom de la station (ex: 'La Rochelle')"},
-                    "years":      {"type": "integer", "description": "Nombre d'années (ex: 10, 20, 30)"},
-                    "chart_type": {
-                        "type": "string",
-                        "description": (
-                            "Type de graphique Chart.js. Choisir librement selon ce qui est le plus "
-                            "pertinent pour les données et la question : 'line' pour une tendance "
-                            "temporelle, 'bar' pour comparer des années, 'radar' pour une vue "
-                            "polaire, 'pie' ou 'doughnut' pour une répartition, 'polarArea' pour "
-                            "des magnitudes radiales. Défaut : 'line'."
-                        ),
-                    },
-                },
-                "required": ["station", "years"],
-            },
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_critical_networks",
+            "description": (
+                "Affiche la carte des infrastructures et réseaux critiques de La Rochelle "
+                "(eau, énergie, transports…) issues des données OpenStreetMap. "
+                "Utile pour évaluer les enjeux exposés à la submersion."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_xynthia_simulation",
+            "description": (
+                "Affiche la simulation hydraulique de la tempête Xynthia sur La Rochelle Nord. "
+                "Graphique de progression de la submersion frame par frame, "
+                "basé sur le MNT HOMONIM 20m (simulation réelle, coordonnées WGS84)."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
 ]
@@ -396,28 +487,32 @@ TOOLS = [
 # ── Dispatcher ───────────────────────────────────────────────────────────────
 
 TOOL_DISPATCH = {
-    "get_current_datetime":       lambda args: get_current_datetime(),
-    "get_maree_actuelle":         lambda args: get_maree_actuelle(),
-    "get_maree_pour_date":        lambda args: get_maree_pour_date(args["date"], args.get("heure", "12:00")),
-    "get_coastal_infrastructure": lambda args: get_coastal_infrastructure(args["radius_km"]),
-    "get_sea_level_trend":        lambda args: get_sea_level_trend(args["station"], args["years"], args.get("chart_type", "line")),
+    "get_current_datetime":  lambda args: get_current_datetime(),
+    "get_maree_actuelle":    lambda args: get_maree_actuelle(),
+    "get_maree_pour_date":   lambda args: get_maree_pour_date(args["date"], args.get("heure", "12:00")),
+    "get_flood_scenarios":   lambda args: get_flood_scenarios(),
+    "get_flood_zones":       lambda args: get_flood_zones(),
+    "get_critical_networks": lambda args: get_critical_networks(),
+    "get_xynthia_simulation": lambda args: get_xynthia_simulation(),
 }
 
-# Outils qui produisent une visualisation frontend (carte ou graphique)
-VISUAL_TOOLS = {"get_coastal_infrastructure", "get_sea_level_trend"}
+VISUAL_TOOLS = {"get_flood_scenarios", "get_flood_zones", "get_critical_networks", "get_xynthia_simulation"}
 
 # ── Suggestions contextuelles ────────────────────────────────────────────────
 
 DEFAULT_SUGGESTIONS = [
     "Quelle est la marée actuelle ?",
-    "Prédiction marée demain à 14h",
-    "Afficher la carte des infrastructures côtières",
-    "Tendance du niveau marin sur 30 ans",
+    "Scénarios de submersion",
+    "Zones à risque PPRI",
+    "Infrastructures critiques",
+    "Simulation Xynthia",
 ]
 
 TOOL_SUGGESTIONS = {
-    "get_maree_actuelle": DEFAULT_SUGGESTIONS,
-    "get_maree_pour_date": DEFAULT_SUGGESTIONS,
-    "get_sea_level_trend": DEFAULT_SUGGESTIONS,
-    "get_coastal_infrastructure": DEFAULT_SUGGESTIONS,
+    "get_maree_actuelle":     ["Prédiction marée demain à 14h", "Scénarios de submersion", "Zones à risque PPRI", "Simulation Xynthia"],
+    "get_maree_pour_date":    ["Quelle est la marée actuelle ?", "Scénarios de submersion", "Zones à risque PPRI", "Simulation Xynthia"],
+    "get_flood_scenarios":    ["Zones à risque PPRI", "Simulation Xynthia", "Infrastructures critiques", "Quelle est la marée actuelle ?"],
+    "get_flood_zones":        ["Infrastructures critiques", "Scénarios de submersion", "Simulation Xynthia", "Quelle est la marée actuelle ?"],
+    "get_critical_networks":  ["Zones à risque PPRI", "Scénarios de submersion", "Simulation Xynthia", "Quelle est la marée actuelle ?"],
+    "get_xynthia_simulation": ["Scénarios de submersion", "Zones à risque PPRI", "Infrastructures critiques", "Quelle est la marée actuelle ?"],
 }
