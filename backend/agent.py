@@ -105,7 +105,7 @@ def run_agent(question: str, on_event=None) -> dict:
 
             if name in VISUAL_TOOLS:
                 # N'envoie qu'un résumé texte à l'agent (économie de tokens)
-                if name in ("get_flood_zones", "get_critical_networks"):
+                if name in ("get_flood_zones", "get_critical_networks"):  # → carte
                     last_visual = {
                         "type": "map",
                         "data": {

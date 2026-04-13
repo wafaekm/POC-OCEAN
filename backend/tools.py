@@ -210,6 +210,71 @@ def get_maree_actuelle() -> dict:
     return _maree_cache
 
 
+def get_maree_journee(date: str) -> dict:
+    """
+    Retourne le graphique des hauteurs de marée heure par heure sur une journée entière.
+    Utiliser quand l'utilisateur demande un graphique ou l'évolution de la marée sur une journée.
+    """
+    try:
+        day = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        return {"error": "Format invalide. Utiliser date=YYYY-MM-DD"}
+
+    now = datetime.now()
+    day_start = day.replace(hour=0, minute=0, second=0)
+    day_end   = day.replace(hour=23, minute=59, second=59)
+    futur = day_end > now
+
+    if futur or day >= CUTOFF:
+        entries = _fetch_shom(day_start, day_end, predict=futur)
+        source = "API SHOM prédictions" if futur else "API SHOM observations"
+    else:
+        all_entries = _read_local_files()
+        date_shom = date.replace("-", "/")   # "2024-06-15" → "2024/06/15"
+        entries = [
+            e for e in all_entries
+            if e.get("timestamp", "").startswith(date_shom)
+        ]
+        source = "Fichiers JSON SHOM validés"
+
+    if not entries:
+        return {"error": f"Aucune donnée disponible pour le {date}"}
+
+    # Trie et formate les données horaires
+    parsed = []
+    for e in entries:
+        try:
+            ts = datetime.strptime(e["timestamp"], "%Y/%m/%d %H:%M:%S")
+        except ValueError:
+            continue
+        if day_start <= ts <= day_end:
+            parsed.append((ts, round(float(e["value"]), 3)))
+
+    parsed.sort(key=lambda x: x[0])
+
+    if not parsed:
+        return {"error": f"Aucun relevé trouvé pour le {date}"}
+
+    labels = [ts.strftime("%Hh") for ts, _ in parsed]
+    values = [v for _, v in parsed]
+    max_h  = max(values)
+    min_h  = min(values)
+
+    return {
+        "labels":     labels,
+        "values":     values,
+        "chart_type": "line",
+        "unit":       "m ZH",
+        "station":    f"La Rochelle — {day.strftime('%d/%m/%Y')}",
+        "summary": (
+            f"Hauteurs de marée à La Rochelle le {day.strftime('%d/%m/%Y')} "
+            f"({len(parsed)} relevés horaires). "
+            f"Haute mer : {max_h} m ZH · Basse mer : {min_h} m ZH. "
+            f"Source : {source}."
+        ),
+    }
+
+
 def get_maree_pour_date(date: str, heure: str = "12:00") -> dict:
     try:
         target = datetime.strptime(f"{date} {heure}", "%Y-%m-%d %H:%M")
@@ -457,6 +522,26 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_maree_journee",
+            "description": (
+                "Affiche un graphique de l'évolution de la hauteur de marée heure par heure "
+                "sur une journée entière à La Rochelle. "
+                "Utiliser quand l'utilisateur demande un graphique, une courbe, ou l'évolution "
+                "de la marée sur une journée (aujourd'hui, demain, une date précise). "
+                "Appeler get_current_datetime d'abord si la date est relative."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "date": {"type": "string", "description": "Date YYYY-MM-DD"},
+                },
+                "required": ["date"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_flood_scenarios",
             "description": (
                 "Affiche un graphique comparatif des scénarios de submersion marine pour La Rochelle : "
@@ -510,13 +595,14 @@ TOOL_DISPATCH = {
     "get_current_datetime":  lambda args: get_current_datetime(),
     "get_maree_actuelle":    lambda args: get_maree_actuelle(),
     "get_maree_pour_date":   lambda args: get_maree_pour_date(args["date"], args.get("heure", "12:00")),
+    "get_maree_journee":     lambda args: get_maree_journee(args["date"]),
     "get_flood_scenarios":   lambda args: get_flood_scenarios(),
     "get_flood_zones":       lambda args: get_flood_zones(),
     "get_critical_networks": lambda args: get_critical_networks(),
     "get_xynthia_simulation": lambda args: get_xynthia_simulation(),
 }
 
-VISUAL_TOOLS = {"get_flood_scenarios", "get_flood_zones", "get_critical_networks", "get_xynthia_simulation"}
+VISUAL_TOOLS = {"get_maree_journee", "get_flood_scenarios", "get_flood_zones", "get_critical_networks", "get_xynthia_simulation"}
 
 # ── Suggestions contextuelles ────────────────────────────────────────────────
 

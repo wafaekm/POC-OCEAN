@@ -126,6 +126,7 @@ const BACKEND_URL = 'http://localhost:8000'
 const TOOL_LABELS = {
   get_maree_actuelle:     'marée actuelle',
   get_maree_pour_date:    'données marée',
+  get_maree_journee:      'graphique marée journalier',
   get_current_datetime:   'date et heure',
   get_flood_scenarios:    'scénarios de submersion',
   get_flood_zones:        'zones PPRI',
