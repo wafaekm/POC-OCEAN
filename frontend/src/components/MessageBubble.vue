@@ -64,7 +64,12 @@ import DOMPurify from 'dompurify'
 import MapView from './MapView.vue'
 import ChartView from './ChartView.vue'
 
-marked.use({ breaks: true })
+marked.use({
+  breaks: true,
+  renderer: {
+    image: () => '',   // Mistral génère parfois des liens image — on les supprime
+  },
+})
 
 defineProps({
   message: {
