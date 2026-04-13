@@ -104,9 +104,8 @@ def run_agent(question: str, on_event=None) -> dict:
             logging.info(f"  [TOOL] {name} → {'erreur' if 'error' in result else 'ok'}")
 
             if name in VISUAL_TOOLS:
-                # Stocke les données visuelles pour le frontend
                 # N'envoie qu'un résumé texte à l'agent (économie de tokens)
-                if name == "get_coastal_infrastructure":
+                if name in ("get_flood_zones", "get_critical_networks"):
                     last_visual = {
                         "type": "map",
                         "data": {
@@ -116,7 +115,7 @@ def run_agent(question: str, on_event=None) -> dict:
                             "layer_type": result["layer_type"],
                         },
                     }
-                else:  # get_sea_level_trend
+                else:  # get_flood_scenarios, get_xynthia_simulation
                     last_visual = {
                         "type": "chart",
                         "data": {
