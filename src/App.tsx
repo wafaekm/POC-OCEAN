@@ -9,9 +9,12 @@ import './App.css'
 
 type View = '2d' | '3d'
 
+const CHAT_URL = 'http://localhost:5174'
+
 export default function App() {
-  const [view, setView] = useState<View>('2d')
-  const [layers, setLayers] = useState<Record<LayerId, boolean>>({
+  const [view, setView]         = useState<View>('2d')
+  const [chatOpen, setChatOpen] = useState(false)
+  const [layers, setLayers]     = useState<Record<LayerId, boolean>>({
     'ppri-zones': true,
     'ppri-fill': true,
     'critical-networks-layer': true,
@@ -23,12 +26,13 @@ export default function App() {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+
       {/* Carte — plein écran */}
       {view === '2d' && <Map2D layers={layers} />}
       {view === '3d' && <Map3D />}
 
-      {/* ViewToggle — toujours visible en haut à gauche */}
+      {/* ViewToggle — haut gauche */}
       <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 100 }}>
         <ViewToggle current={view} onChange={setView} />
       </div>
@@ -36,27 +40,78 @@ export default function App() {
       {/* Panels 2D uniquement */}
       {view === '2d' && (
         <>
-          {/* Légende — bas gauche */}
-          <div style={{
-            position: 'absolute',
-            bottom: 48,
-            left: 16,
-            zIndex: 10,
-          }}>
+          <div style={{ position: 'absolute', bottom: 48, left: 16, zIndex: 10 }}>
             <Legend />
           </div>
-
-          {/* LayerControl — bas droite */}
-          <div style={{
-            position: 'absolute',
-            bottom: 48,
-            right: 16,
-            zIndex: 10,
-          }}>
+          <div style={{ position: 'absolute', bottom: 48, right: chatOpen ? 424 : 16, zIndex: 10, transition: 'right 0.3s ease' }}>
             <LayerControl layers={layers} onToggle={toggleLayer} />
           </div>
         </>
       )}
+
+      {/* ── Panneau chat ──────────────────────────────────────── */}
+      <div style={{
+        position:   'absolute',
+        top:        0,
+        right:      chatOpen ? 0 : -408,
+        width:      408,
+        height:     '100%',
+        zIndex:     200,
+        transition: 'right 0.3s ease',
+        display:    'flex',
+        flexDirection: 'column',
+        background: '#040d1f',
+        borderLeft: '1px solid rgba(34,211,238,0.18)',
+        boxShadow:  chatOpen ? '-8px 0 32px rgba(0,0,0,0.5)' : 'none',
+      }}>
+        <iframe
+          src={CHAT_URL}
+          style={{ flex: 1, border: 'none', width: '100%' }}
+          title="Agent Géo-Twin"
+          allow="same-origin"
+        />
+      </div>
+
+      {/* ── Bouton flottant chat ───────────────────────────────── */}
+      <button
+        onClick={() => setChatOpen(o => !o)}
+        title={chatOpen ? 'Fermer le chatbot' : 'Ouvrir le chatbot'}
+        style={{
+          position:     'absolute',
+          bottom:       24,
+          right:        chatOpen ? 424 : 24,
+          zIndex:       300,
+          width:        52,
+          height:       52,
+          borderRadius: '50%',
+          border:       '1.5px solid rgba(34,211,238,0.5)',
+          background:   chatOpen
+            ? 'rgba(34,211,238,0.18)'
+            : 'linear-gradient(135deg,#0891b2,#22d3ee)',
+          color:        chatOpen ? '#22d3ee' : '#040d1f',
+          cursor:       'pointer',
+          display:      'flex',
+          alignItems:   'center',
+          justifyContent: 'center',
+          boxShadow:    '0 4px 20px rgba(0,0,0,0.4)',
+          transition:   'right 0.3s ease, background 0.2s',
+          flexShrink:   0,
+        }}
+      >
+        {chatOpen ? (
+          /* X pour fermer */
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+          </svg>
+        ) : (
+          /* Bulle de chat */
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </button>
+
     </div>
   )
 }
