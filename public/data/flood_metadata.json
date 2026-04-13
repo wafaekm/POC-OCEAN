@@ -1,0 +1,26 @@
+{
+  "project": "Muncie HEC-RAS 2D Flood Simulation",
+  "source_crs": "EPSG:2965",
+  "bbox": {
+    "lon_min": -85.391372,
+    "lat_min": 40.192658,
+    "lon_max": -85.365509,
+    "lat_max": 40.203693
+  },
+  "center": {
+    "lon": -85.378441,
+    "lat": 40.198175
+  },
+  "n_cells": 5765,
+  "terrain_elev_range": {
+    "min": 925.0,
+    "max": 951.93
+  },
+  "wse_range": {
+    "min": 925.0,
+    "max": 953.84
+  },
+  "simulation_start": "01JAN1900 02:40:00",
+  "simulation_end": "02JAN1900 02:40:00",
+  "units": "US Survey Feet"
+}

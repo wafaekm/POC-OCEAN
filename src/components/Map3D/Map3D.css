@@ -1,0 +1,307 @@
+.map3d-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.map3d-container {
+  width: 100%;
+  height: 100%;
+}
+
+.map3d-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-family: sans-serif;
+  font-size: 16px;
+  background: rgba(10, 10, 20, 0.85);
+  padding: 16px 24px;
+  border-radius: 8px;
+  z-index: 80;
+}
+
+.simulation-panel {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 20, 0.92);
+  border-radius: 14px;
+  padding: 18px 22px;
+  color: white;
+  font-family: sans-serif;
+  min-width: 380px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 30;
+}
+
+.simulation-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.simulation-subtitle {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.sim-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sim-label {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.sim-slider {
+  flex: 1;
+  accent-color: #378ADD;
+  cursor: pointer;
+}
+
+.sim-value {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 48px;
+  text-align: right;
+  transition: color 0.3s;
+}
+
+.sim-scenarios {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  justify-content: center;
+}
+
+.sim-btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: #aaa;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sim-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
+
+.sim-btn.active {
+  background: rgba(55, 138, 221, 0.3);
+  border-color: #378ADD;
+  color: white;
+}
+
+.sim-animate-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #1a6bbd, #378ADD);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 10px;
+}
+
+.sim-animate-btn:hover {
+  opacity: 0.88;
+}
+
+.sim-animate-btn.stop {
+  background: linear-gradient(135deg, #c0392b, #E24B4A);
+}
+
+.sim-cinematic-badge {
+  text-align: center;
+  font-size: 11px;
+  color: #EF9F27;
+  margin-bottom: 8px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.sim-info {
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.sim-frame-info {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.scenario-selector-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #162033 0%, #0b0f18 100%);
+}
+
+.scenario-selector-card {
+  min-width: 380px;
+  background: rgba(10, 10, 20, 0.94);
+  border-radius: 16px;
+  padding: 28px;
+  color: white;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scenario-selector-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.scenario-selector-subtitle {
+  font-size: 13px;
+  color: #9aa3b2;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.scenario-selector-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scenario-selector-btn {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.scenario-selector-btn:hover {
+  background: rgba(55, 138, 221, 0.18);
+  border-color: #378ADD;
+}
+
+.scene-back-btn {
+  position: absolute;
+  top: 82px;
+  left: 16px;
+  z-index: 60;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(10, 10, 20, 0.9);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.scene-back-btn:hover {
+  background: rgba(25, 35, 55, 0.95);
+}
+
+@media (max-width: 900px) {
+  .simulation-panel {
+    min-width: 320px;
+    width: calc(100vw - 32px);
+    max-width: 520px;
+  }
+}
+
+@media (max-height: 760px) {
+  .scene-back-btn {
+    top: 72px;
+  }
+
+  .simulation-panel {
+    bottom: 16px;
+  }
+}
+
+
+
+
+.rain-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.rain-overlay.active {
+  opacity: 1;
+}
+
+.rain-dim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(120, 140, 160, 0.06),
+    rgba(80, 100, 120, 0.12)
+  );
+}
+
+.rain-drop {
+  position: absolute;
+  top: -12%;
+  width: 2px;
+  height: 90px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(210, 230, 255, 0.95),
+    rgba(210, 230, 255, 0.15)
+  );
+  filter: blur(0.2px);
+  animation-name: rain-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes rain-fall {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(14deg);
+  }
+  100% {
+    transform: translate3d(-12vw, 120vh, 0) rotate(14deg);
+  }
+}

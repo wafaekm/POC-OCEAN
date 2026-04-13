@@ -1,0 +1,89 @@
+{
+  "scenarioId": "sc02_xynthia",
+  "label": "Xynthia — surcote +1.5 m",
+  "niveau_m": 4.681,
+  "batiments_touches": 18558,
+  "batiments_critiques": [],
+  "routes_coupees": 7217,
+  "reseaux_critiques": [
+    "eau",
+    "secours_sante"
+  ],
+  "surface_inondee_ha": 81410.0,
+  "details": {
+    "scenario_id": "sc02_xynthia",
+    "level_m": 4.681,
+    "batiments": {
+      "n_touches": 18558,
+      "par_nature": {
+        "Indifférenciée": 17433,
+        "Industriel, agricole ou commercial": 1042,
+        "Silo": 40,
+        "Fort, blockhaus, casemate": 21,
+        "Tribune": 3,
+        "Serre": 9,
+        "Eglise": 2,
+        "Tour, donjon": 8
+      },
+      "par_usage": {
+        "Commercial et services": 306,
+        "Indifférencié": 9534,
+        "Agricole": 196,
+        "Annexe": 1629,
+        "Résidentiel": 6742,
+        "Industriel": 131,
+        "Sportif": 18,
+        "Religieux": 2
+      }
+    },
+    "routes": {
+      "n_troncons_coupes": 7217,
+      "par_nature": {
+        "Route empierrée": 771,
+        "Chemin": 1165,
+        "Route à 1 chaussée": 4172,
+        "Sentier": 760,
+        "Rond-point": 193,
+        "Escalier": 7,
+        "Route à 2 chaussées": 62,
+        "Bretelle": 23,
+        "Type autoroutier": 51,
+        "Bac ou liaison maritime": 13
+      },
+      "routes_nommees_coupees": []
+    },
+    "infrastructures_critiques": [],
+    "reseaux_critiques": {
+      "source": "OpenStreetMap Overpass API",
+      "date_fetch": "2026-03-30",
+      "electrique": {
+        "n_touches": 0,
+        "details": []
+      },
+      "eau": {
+        "n_touches": 1,
+        "details": [
+          {
+            "nom": "",
+            "lon": -1.05959,
+            "lat": 46.0900285,
+            "osm_type": "way",
+            "osm_id": 118173194
+          }
+        ]
+      },
+      "secours_sante": {
+        "n_touches": 1,
+        "details": [
+          {
+            "nom": "Centre d'incendie et de secours de Châtelaillon-Plage",
+            "lon": -1.0857119,
+            "lat": 46.0694081,
+            "osm_type": "way",
+            "osm_id": 655195021
+          }
+        ]
+      }
+    }
+  }
+}
