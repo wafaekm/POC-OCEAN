@@ -1,0 +1,26 @@
+{
+  "project": "La Rochelle Nord — Scenario Xynthia (MNT HOMONIM 20m)",
+  "source_crs": "WGS84",
+  "bbox": {
+    "lon_min": -1.35,
+    "lat_min": 46.20,
+    "lon_max": -1.05,
+    "lat_max": 46.30
+  },
+  "center": {
+    "lon": -1.20,
+    "lat": 46.25
+  },
+  "n_cells": 46376,
+  "terrain_elev_range": {
+    "min": -24.6,
+    "max": 29.4
+  },
+  "wse_range": {
+    "min": -0.5,
+    "max": 2.1
+  },
+  "simulation_start": "Avant tempete — WSE -0.50m NGF",
+  "simulation_end": "Fin submersion — WSE -0.10m NGF",
+  "units": "metres NGF"
+}

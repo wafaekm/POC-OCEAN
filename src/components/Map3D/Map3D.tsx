@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import MuncieFloodView from '../MuncieFloodView'
-import LaRochelleWaveView from '../LaRochelleWaveView'
+import LaRochelleScenarioView from '../LaRochelleScenarioView'
 import './Map3D.css'
 
 type SceneMode = 'selector' | 'muncie' | 'larochelle'
@@ -19,7 +19,7 @@ export default function Map3D() {
   if (mode === 'larochelle') {
     return (
       <div className="map3d-wrapper">
-        <LaRochelleWaveView onBack={() => setMode('selector')} />
+        <LaRochelleScenarioView onBack={() => setMode('selector')} />
       </div>
     )
   }
@@ -44,7 +44,7 @@ export default function Map3D() {
             className="scenario-selector-btn"
             onClick={() => setMode('larochelle')}
           >
-            La Rochelle — Houle WW3
+            La Rochelle — WW3 / Inondation urbaine
           </button>
         </div>
       </div>

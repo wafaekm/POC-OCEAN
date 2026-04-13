@@ -1,26 +1,23 @@
-/* ═══════════════════════════════════════════════════
-   WW3 LEGEND COMPONENT
-═══════════════════════════════════════════════════ */
-
 .ww3-legend {
   position: absolute;
-  bottom: 200px;
-  right: 16px;
-  width: 260px;
+  left: 16px;
+  bottom: 16px;
+  right: auto;
+  width: 280px;
+  max-height: calc(100vh - 160px);
   background: rgba(10, 14, 28, 0.95);
   border: 1px solid rgba(0, 180, 255, 0.22);
   border-radius: 12px;
   padding: 0;
-  z-index: 10;
+  z-index: 35;
   backdrop-filter: blur(16px);
   font-family: sans-serif;
   color: #d8f0ff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0,200,255,0.05);
-  overflow: hidden;
+  overflow: auto;
   transition: all 0.2s ease;
 }
 
-/* ── Header ── */
 .wl-header {
   display: flex;
   align-items: center;
@@ -53,7 +50,7 @@
 
 @keyframes wl-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.7); }
+  50% { opacity: 0.5; transform: scale(0.7); }
 }
 
 .wl-title {
@@ -96,7 +93,6 @@
   color: rgba(216, 240, 255, 0.4);
 }
 
-/* ── Info panel ── */
 .wl-info-panel {
   padding: 10px 14px;
   background: rgba(0, 50, 100, 0.2);
@@ -140,7 +136,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ── Variable tabs ── */
 .wl-tabs {
   display: flex;
   gap: 0;
@@ -162,8 +157,13 @@
   border-radius: 0;
 }
 
-.wl-tab:first-child { border-radius: 4px 0 0 4px; }
-.wl-tab:last-child  { border-radius: 0 4px 4px 0; }
+.wl-tab:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.wl-tab:last-child {
+  border-radius: 0 4px 4px 0;
+}
 
 .wl-tab:hover {
   background: rgba(0, 200, 255, 0.1);
@@ -176,7 +176,6 @@
   color: #00c8ff;
 }
 
-/* ── Colorbar gradient ── */
 .wl-colorbar-wrap {
   padding: 8px 14px 14px;
   position: relative;
@@ -205,7 +204,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ── Description ── */
 .wl-var-desc {
   padding: 0 14px 10px;
   font-size: 9px;
@@ -215,7 +213,6 @@
   margin-bottom: 8px;
 }
 
-/* ── Stops list ── */
 .wl-stops {
   padding: 0 14px;
   display: flex;
@@ -251,7 +248,6 @@
   font-size: 8px;
 }
 
-/* ── Note ── */
 .wl-note {
   margin: 0 14px 10px;
   padding: 5px 8px;
@@ -263,7 +259,6 @@
   line-height: 1.4;
 }
 
-/* ── Sea states table ── */
 .wl-sea-states {
   margin: 0 14px 10px;
   padding: 8px;
@@ -289,7 +284,9 @@
   font-size: 9px;
 }
 
-.wl-sea-row:last-child { margin-bottom: 0; }
+.wl-sea-row:last-child {
+  margin-bottom: 0;
+}
 
 .wl-sea-dot {
   width: 8px;
@@ -310,7 +307,6 @@
   font-weight: 600;
 }
 
-/* ── Compass rose (direction) ── */
 .wl-compass {
   margin: 0 14px 10px;
   display: flex;
@@ -351,7 +347,6 @@
   line-height: 1.3;
 }
 
-/* ── Source ── */
 .wl-source {
   padding: 6px 14px;
   font-size: 7px;
@@ -359,4 +354,19 @@
   letter-spacing: 0.06em;
   border-top: 1px solid rgba(0, 180, 255, 0.08);
   background: rgba(0, 0, 0, 0.1);
+}
+
+@media (max-height: 760px) {
+  .ww3-legend {
+    max-height: calc(100vh - 120px);
+    width: 260px;
+  }
+}
+
+@media (max-width: 900px) {
+  .ww3-legend {
+    width: 250px;
+    left: 12px;
+    bottom: 12px;
+  }
 }
