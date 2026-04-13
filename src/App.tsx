@@ -88,26 +88,42 @@ export default function App() {
           </div>
         )}
 
-        {/* Bouton chat — milieu droit, entre bdtopo-panel et LayerControl */}
+        {/* Bouton chat — style cohérent avec les panels de la carte */}
         <button
           onClick={() => setChatOpen(o => !o)}
           title={chatOpen ? 'Fermer le chatbot' : 'Ouvrir le chatbot'}
           style={{
             position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: 16, zIndex: 100,
-            width: 50, height: 50, borderRadius: '50%',
-            border: '1.5px solid rgba(34,211,238,0.5)',
-            background: chatOpen
-              ? 'rgba(34,211,238,0.12)'
-              : 'linear-gradient(135deg,#0891b2,#22d3ee)',
-            color: chatOpen ? '#22d3ee' : '#040d1f',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            background: 'rgba(15,15,28,0.93)',
+            border: chatOpen ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 10,
+            backdropFilter: 'blur(14px)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+            cursor: 'pointer',
+            padding: '10px 14px',
+            display: 'flex', alignItems: 'center', gap: 10,
+            color: '#d8f0ff',
+            fontFamily: 'sans-serif',
+            transition: 'border-color 0.2s',
           }}
         >
-          {chatOpen
-            ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>
-            : <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          }
+          {/* Icône bulle */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.85 }}>
+            {chatOpen
+              ? <path d="M18 6L6 18M6 6l12 12" stroke="#d8f0ff" strokeWidth="2" strokeLinecap="round"/>
+              : <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#d8f0ff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            }
+          </svg>
+          {/* Texte d'invitation */}
+          {!chatOpen && (
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888', marginBottom: 2 }}>Assistant IA</div>
+              <div style={{ fontSize: 11, color: 'rgba(216,240,255,0.75)', whiteSpace: 'nowrap' }}>Posez vos questions sur la submersion</div>
+            </div>
+          )}
+          {chatOpen && (
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888' }}>Fermer</div>
+          )}
         </button>
 
       </div>
