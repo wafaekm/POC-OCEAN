@@ -1,0 +1,67 @@
+{
+  "scenarioId": "sc01_grande_maree",
+  "label": "Grande marée vive-eau (référence)",
+  "niveau_m": 3.181,
+  "batiments_touches": 3957,
+  "batiments_critiques": [],
+  "routes_coupees": 3027,
+  "reseaux_critiques": [],
+  "surface_inondee_ha": 77208.9,
+  "details": {
+    "scenario_id": "sc01_grande_maree",
+    "level_m": 3.181,
+    "batiments": {
+      "n_touches": 3957,
+      "par_nature": {
+        "Industriel, agricole ou commercial": 332,
+        "Indifférenciée": 3587,
+        "Silo": 25,
+        "Serre": 1,
+        "Fort, blockhaus, casemate": 6,
+        "Tour, donjon": 6
+      },
+      "par_usage": {
+        "Indifférencié": 2465,
+        "Agricole": 80,
+        "Résidentiel": 1050,
+        "Annexe": 281,
+        "Commercial et services": 47,
+        "Industriel": 32,
+        "Sportif": 2
+      }
+    },
+    "routes": {
+      "n_troncons_coupes": 3027,
+      "par_nature": {
+        "Route empierrée": 430,
+        "Chemin": 855,
+        "Route à 1 chaussée": 1330,
+        "Sentier": 326,
+        "Rond-point": 18,
+        "Route à 2 chaussées": 22,
+        "Bretelle": 11,
+        "Type autoroutier": 18,
+        "Escalier": 4,
+        "Bac ou liaison maritime": 13
+      },
+      "routes_nommees_coupees": []
+    },
+    "infrastructures_critiques": [],
+    "reseaux_critiques": {
+      "source": "OpenStreetMap Overpass API",
+      "date_fetch": "2026-03-30",
+      "electrique": {
+        "n_touches": 0,
+        "details": []
+      },
+      "eau": {
+        "n_touches": 0,
+        "details": []
+      },
+      "secours_sante": {
+        "n_touches": 0,
+        "details": []
+      }
+    }
+  }
+}

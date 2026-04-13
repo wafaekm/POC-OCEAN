@@ -1,0 +1,26 @@
+.view-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.view-toggle button {
+  padding: 8px 20px;
+  border: none;
+  background: #1a1a2e;
+  color: #aaa;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.view-toggle button.active {
+  background: #378ADD;
+  color: white;
+}
