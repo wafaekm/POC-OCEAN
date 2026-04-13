@@ -328,12 +328,32 @@ def get_critical_networks() -> dict:
     except Exception as e:
         return {"error": f"Impossible de lire les réseaux critiques : {e}"}
 
-    point_geojson = _geojson_to_points(geojson)
-    features = point_geojson["features"]
+    raw_points = _geojson_to_points(geojson)
+
+    # Normalise les propriétés pour le popup MapView (name / type / risk)
+    point_features = []
+    for feat in raw_points["features"]:
+        p = feat["properties"]
+        tags = p.get("tags", {})
+        name = (
+            tags.get("name")
+            or tags.get("operator")
+            or tags.get("man_made", "").replace("_", " ")
+            or p.get("category", "infrastructure")
+        )
+        infra_type = tags.get("man_made", p.get("category", "autre")).replace("_", " ")
+        point_features.append({
+            "type": "Feature",
+            "properties": {"name": name.capitalize(), "type": infra_type, "risk": "modéré"},
+            "geometry": feat["geometry"],
+        })
+
+    point_geojson = {"type": "FeatureCollection", "features": point_features}
+    features = point_features
 
     categories = defaultdict(int)
     for feat in features:
-        cat = feat["properties"].get("category", "autre")
+        cat = feat["properties"].get("type", "autre")
         categories[cat] += 1
 
     cat_summary = ", ".join(f"{v} {k}" for k, v in sorted(categories.items()))
