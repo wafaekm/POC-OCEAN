@@ -11,6 +11,7 @@ import {
   Color,
   Cesium3DTileFeature,
   Cesium3DTileStyle,
+  Cesium3DTileset,
   ShadowMode,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -27,6 +28,7 @@ import {
   Material,
   sampleTerrainMostDetailed,
   buildModuleUrl,
+  JulianDate,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import './Map3D/Map3D.css'
@@ -42,6 +44,7 @@ const DEFAULT_PLAYBACK_SPEED = 240
 const WATER_SURFACE_LIFT_M = 0.04
 const MIN_ACTIVE_TRIANGLE_DEPTH_M = 0.01
 const VISUAL_WAVE_TIME_SCALE = 1.0
+const DAYLIGHT_TIME_ISO = '2025-07-01T12:00:00Z'
 
 const WAVE_1_AMPLITUDE_M = 0.25
 const WAVE_1_LENGTH_M = 42
@@ -61,6 +64,9 @@ const WAVE_3_SPEED_MPS = 1.8
 const WAVE_3_DIR_X = 0.7
 const WAVE_3_DIR_Y = 0.7
 
+const FLOODED_BUILDING_COLOR = Color.fromCssColorString('#ff3b30')
+const SELECTED_BUILDING_COLOR = Color.fromCssColorString('#4a9eff')
+
 interface Props {
   onBack: () => void
 }
@@ -70,6 +76,7 @@ interface BuildingInfo {
   height: string
   type: string
   address: string
+  flooded: boolean
 }
 
 interface FloodMetadata {
@@ -151,6 +158,19 @@ interface FramePair {
   frameA: MeshFrame
   frameB: MeshFrame
   alpha: number
+}
+
+interface FloodedTriangle {
+  ax: number
+  ay: number
+  bx: number
+  by: number
+  cx: number
+  cy: number
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
 }
 
 function lerp(a: number, b: number, alpha: number) {
@@ -326,12 +346,139 @@ function createWaterAppearance() {
   return appearance
 }
 
+function createRainStreaks(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    duration: 0.45 + Math.random() * 0.55,
+    delay: Math.random() * 1.2,
+    opacity: 0.2 + Math.random() * 0.45,
+    scale: 0.6 + Math.random() * 1.4,
+  }))
+}
+
+function pointSign(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number
+) {
+  return (px - bx) * (ay - by) - (ax - bx) * (py - by)
+}
+
+function pointInTriangle2D(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  cx: number,
+  cy: number
+) {
+  const d1 = pointSign(px, py, ax, ay, bx, by)
+  const d2 = pointSign(px, py, bx, by, cx, cy)
+  const d3 = pointSign(px, py, cx, cy, ax, ay)
+
+  const hasNeg = d1 < 0 || d2 < 0 || d3 < 0
+  const hasPos = d1 > 0 || d2 > 0 || d3 > 0
+
+  return !(hasNeg && hasPos)
+}
+
+function getVertexLocalXY(topology: MeshTopology, vertexIndex: number) {
+  const lonlat = topology.vertices_lonlat[vertexIndex]
+
+  const x =
+    topology.vertex_local_x_m?.[vertexIndex] ??
+    degreesToLocalMeters(
+      lonlat[0],
+      lonlat[1],
+      topology.center.lon,
+      topology.center.lat
+    ).x
+
+  const y =
+    topology.vertex_local_y_m?.[vertexIndex] ??
+    degreesToLocalMeters(
+      lonlat[0],
+      lonlat[1],
+      topology.center.lon,
+      topology.center.lat
+    ).y
+
+  return { x, y }
+}
+
+function buildFloodedTriangles(
+  topology: MeshTopology,
+  pair: FramePair,
+  heightMapA: Map<number, number>,
+  heightMapB: Map<number, number>,
+  activeTriangleIds: number[]
+) {
+  const floodedTriangles: FloodedTriangle[] = []
+
+  for (const triId of activeTriangleIds) {
+    const tri = topology.triangles[triId]
+    if (!tri || tri.length !== 3) continue
+
+    const v0 = tri[0]
+    const v1 = tri[1]
+    const v2 = tri[2]
+
+    const terrain0 = topology.vertex_terrain_m[v0] ?? 0
+    const terrain1 = topology.vertex_terrain_m[v1] ?? 0
+    const terrain2 = topology.vertex_terrain_m[v2] ?? 0
+
+    const hA0 = heightMapA.has(v0) ? Number(heightMapA.get(v0)) : terrain0
+    const hA1 = heightMapA.has(v1) ? Number(heightMapA.get(v1)) : terrain1
+    const hA2 = heightMapA.has(v2) ? Number(heightMapA.get(v2)) : terrain2
+
+    const hB0 = heightMapB.has(v0) ? Number(heightMapB.get(v0)) : terrain0
+    const hB1 = heightMapB.has(v1) ? Number(heightMapB.get(v1)) : terrain1
+    const hB2 = heightMapB.has(v2) ? Number(heightMapB.get(v2)) : terrain2
+
+    const depth0 = Math.max(0, lerp(hA0, hB0, pair.alpha) - terrain0)
+    const depth1 = Math.max(0, lerp(hA1, hB1, pair.alpha) - terrain1)
+    const depth2 = Math.max(0, lerp(hA2, hB2, pair.alpha) - terrain2)
+
+    const avgDepth = (depth0 + depth1 + depth2) / 3
+
+    if (avgDepth <= MIN_ACTIVE_TRIANGLE_DEPTH_M) continue
+
+    const p0 = getVertexLocalXY(topology, v0)
+    const p1 = getVertexLocalXY(topology, v1)
+    const p2 = getVertexLocalXY(topology, v2)
+
+    floodedTriangles.push({
+      ax: p0.x,
+      ay: p0.y,
+      bx: p1.x,
+      by: p1.y,
+      cx: p2.x,
+      cy: p2.y,
+      minX: Math.min(p0.x, p1.x, p2.x),
+      minY: Math.min(p0.y, p1.y, p2.y),
+      maxX: Math.max(p0.x, p1.x, p2.x),
+      maxY: Math.max(p0.y, p1.y, p2.y),
+    })
+  }
+
+  return floodedTriangles
+}
+
 export default function MuncieFloodView({ onBack }: Props) {
   const cesiumContainer = useRef<HTMLDivElement>(null)
   const viewer = useRef<Viewer | null>(null)
   const handler = useRef<ScreenSpaceEventHandler | null>(null)
+  const buildingsTilesetRef = useRef<Cesium3DTileset | null>(null)
   const selectedBuilding = useRef<Cesium3DTileFeature | null>(null)
-  const selectedBuildingOriginalColor = useRef<Color | null>(null)
+  const selectedBuildingKeyRef = useRef<string | null>(null)
+  const visibleBuildingFeaturesRef = useRef<Map<string, Cesium3DTileFeature>>(new Map())
+  const currentFloodedTrianglesRef = useRef<FloodedTriangle[]>([])
   const waterPrimitiveRef = useRef<Primitive | null>(null)
 
   const loopRef = useRef<number | null>(null)
@@ -361,6 +508,7 @@ export default function MuncieFloodView({ onBack }: Props) {
   const [autoVerticalOffsetM, setAutoVerticalOffsetM] = useState(0)
   const [userVerticalOffsetM, setUserVerticalOffsetM] = useState(0)
 
+  const rainDrops = useMemo(() => createRainStreaks(180), [])
   const effectiveVerticalOffsetM = autoVerticalOffsetM + userVerticalOffsetM
 
   const currentPair = useMemo(() => {
@@ -408,18 +556,116 @@ export default function MuncieFloodView({ onBack }: Props) {
     viewer.current?.scene.requestRender()
   }
 
-  const resetSelectedBuilding = () => {
-    if (!selectedBuilding.current) return
+  const getFeatureKey = (feature: Cesium3DTileFeature) => {
+    const elementType = feature.getProperty('elementType')
+    const elementId = feature.getProperty('elementId')
 
-    if (selectedBuildingOriginalColor.current) {
-      selectedBuilding.current.color = selectedBuildingOriginalColor.current
-    } else {
-      selectedBuilding.current.color = Color.WHITE
+    if (elementType != null && elementId != null) {
+      return `${String(elementType)}:${String(elementId)}`
     }
 
-    selectedBuilding.current = null
-    selectedBuildingOriginalColor.current = null
+    const lon = Number(feature.getProperty('cesium#longitude'))
+    const lat = Number(feature.getProperty('cesium#latitude'))
+
+    if (Number.isFinite(lon) && Number.isFinite(lat)) {
+      return `${lon.toFixed(7)}:${lat.toFixed(7)}`
+    }
+
+    return null
+  }
+
+  const isFeatureFlooded = (feature: Cesium3DTileFeature) => {
+    if (!topology) return false
+
+    const lon = Number(feature.getProperty('cesium#longitude'))
+    const lat = Number(feature.getProperty('cesium#latitude'))
+
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+      return false
+    }
+
+    if (
+      lon < topology.bbox.lon_min ||
+      lon > topology.bbox.lon_max ||
+      lat < topology.bbox.lat_min ||
+      lat > topology.bbox.lat_max
+    ) {
+      return false
+    }
+
+    const local = degreesToLocalMeters(
+      lon,
+      lat,
+      topology.center.lon,
+      topology.center.lat
+    )
+
+    const floodedTriangles = currentFloodedTrianglesRef.current
+
+    for (let i = 0; i < floodedTriangles.length; i += 1) {
+      const tri = floodedTriangles[i]
+
+      if (
+        local.x < tri.minX ||
+        local.x > tri.maxX ||
+        local.y < tri.minY ||
+        local.y > tri.maxY
+      ) {
+        continue
+      }
+
+      if (
+        pointInTriangle2D(
+          local.x,
+          local.y,
+          tri.ax,
+          tri.ay,
+          tri.bx,
+          tri.by,
+          tri.cx,
+          tri.cy
+        )
+      ) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  const applyColorToFeature = (feature: Cesium3DTileFeature) => {
+    const key = getFeatureKey(feature)
+
+    if (key && selectedBuildingKeyRef.current === key) {
+      feature.color = Color.clone(SELECTED_BUILDING_COLOR, new Color())
+      selectedBuilding.current = feature
+      return
+    }
+
+    feature.color = isFeatureFlooded(feature)
+      ? Color.clone(FLOODED_BUILDING_COLOR, new Color())
+      : Color.WHITE
+  }
+
+  const updateVisibleBuildingColors = () => {
+    visibleBuildingFeaturesRef.current.forEach(feature => {
+      applyColorToFeature(feature)
+    })
+
     requestRender()
+  }
+
+  const resetSelectedBuilding = () => {
+    const previous = selectedBuilding.current
+
+    selectedBuilding.current = null
+    selectedBuildingKeyRef.current = null
+
+    if (previous) {
+      applyColorToFeature(previous)
+    }
+
+    updateVisibleBuildingColors()
   }
 
   const clearWaterPrimitive = () => {
@@ -531,6 +777,16 @@ export default function MuncieFloodView({ onBack }: Props) {
     const heightMapA = buildHeightMap(pair.frameA)
     const heightMapB = buildHeightMap(pair.frameB)
     const activeTriangleIds = buildTriangleSet(pair.frameA, pair.frameB)
+    const floodedTriangles = buildFloodedTriangles(
+      topology,
+      pair,
+      heightMapA,
+      heightMapB,
+      activeTriangleIds
+    )
+
+    currentFloodedTrianglesRef.current = floodedTriangles
+    updateVisibleBuildingColors()
 
     if (!activeTriangleIds.length) {
       requestRender()
@@ -690,6 +946,16 @@ export default function MuncieFloodView({ onBack }: Props) {
 
   const startAnimation = () => {
     if (!meshFrames || meshFrames.frames.length < 2) return
+
+    const startT = meshFrames.frames[0].t
+    const endT = meshFrames.frames[meshFrames.frames.length - 1].t
+
+    if (currentTimeHRef.current >= endT) {
+      currentTimeHRef.current = startT
+      setCurrentFrame(0)
+      setCurrentTimeH(startT)
+    }
+
     isAnimatingRef.current = true
     setIsAnimating(true)
   }
@@ -754,6 +1020,7 @@ export default function MuncieFloodView({ onBack }: Props) {
           shadows: true,
           requestRenderMode: false,
           maximumRenderTimeChange: 0,
+          shouldAnimate: false,
         })
 
         viewer.current = v
@@ -761,9 +1028,15 @@ export default function MuncieFloodView({ onBack }: Props) {
         v.imageryLayers.removeAll()
         v.imageryLayers.addImageryProvider(await IonImageryProvider.fromAssetId(2))
 
+        v.clock.currentTime = JulianDate.fromIso8601(DAYLIGHT_TIME_ISO)
+        v.clock.shouldAnimate = false
+        v.clock.multiplier = 0
+
         v.scene.logarithmicDepthBuffer = true
         v.scene.globe.depthTestAgainstTerrain = true
         v.scene.globe.enableLighting = true
+        v.scene.globe.dynamicAtmosphereLighting = true
+        v.scene.globe.dynamicAtmosphereLightingFromSun = true
         v.scene.globe.showGroundAtmosphere = true
         v.scene.highDynamicRange = true
         v.scene.postProcessStages.fxaa.enabled = true
@@ -779,8 +1052,43 @@ export default function MuncieFloodView({ onBack }: Props) {
             }),
           })
 
+          buildingsTilesetRef.current = buildings
           buildings.shadows = ShadowMode.ENABLED
           buildings.maximumScreenSpaceError = 8
+
+          buildings.tileVisible.addEventListener((tile: any) => {
+            const content = tile?.content
+            const featuresLength = Number(content?.featuresLength) || 0
+
+            for (let i = 0; i < featuresLength; i += 1) {
+              const feature = content.getFeature(i) as Cesium3DTileFeature
+              const key = getFeatureKey(feature)
+
+              if (!key) continue
+
+              visibleBuildingFeaturesRef.current.set(key, feature)
+              applyColorToFeature(feature)
+            }
+          })
+
+          buildings.tileUnload.addEventListener((tile: any) => {
+            const content = tile?.content
+            const featuresLength = Number(content?.featuresLength) || 0
+
+            for (let i = 0; i < featuresLength; i += 1) {
+              const feature = content.getFeature(i) as Cesium3DTileFeature
+              const key = getFeatureKey(feature)
+
+              if (!key) continue
+
+              const current = visibleBuildingFeaturesRef.current.get(key)
+
+              if (current === feature) {
+                visibleBuildingFeaturesRef.current.delete(key)
+              }
+            }
+          })
+
           v.scene.primitives.add(buildings)
 
           handler.current = new ScreenSpaceEventHandler(v.scene.canvas)
@@ -798,8 +1106,8 @@ export default function MuncieFloodView({ onBack }: Props) {
 
             if (defined(picked) && picked instanceof Cesium3DTileFeature) {
               selectedBuilding.current = picked
-              selectedBuildingOriginalColor.current = Color.clone(picked.color, new Color())
-              picked.color = Color.fromCssColorString('#4a9eff')
+              selectedBuildingKeyRef.current = getFeatureKey(picked)
+              picked.color = Color.clone(SELECTED_BUILDING_COLOR, new Color())
 
               const name =
                 picked.getProperty('name') ||
@@ -820,6 +1128,7 @@ export default function MuncieFloodView({ onBack }: Props) {
                 height,
                 type,
                 address: street ? `${number} ${street}`.trim() : 'N/A',
+                flooded: isFeatureFlooded(picked),
               })
 
               requestRender()
@@ -863,6 +1172,8 @@ export default function MuncieFloodView({ onBack }: Props) {
       }
 
       handler.current?.destroy()
+      visibleBuildingFeaturesRef.current.clear()
+      currentFloodedTrianglesRef.current = []
       resetSelectedBuilding()
       clearWaterPrimitive()
 
@@ -870,6 +1181,8 @@ export default function MuncieFloodView({ onBack }: Props) {
         viewer.current.destroy()
         viewer.current = null
       }
+
+      buildingsTilesetRef.current = null
     }
   }, [metadata])
 
@@ -958,6 +1271,23 @@ export default function MuncieFloodView({ onBack }: Props) {
   return (
     <>
       <div ref={cesiumContainer} className="map3d-container" />
+
+      <div className={`rain-overlay ${isAnimating ? 'active' : ''}`}>
+        <div className="rain-dim" />
+        {rainDrops.map(drop => (
+          <span
+            key={drop.id}
+            className="rain-drop"
+            style={{
+              left: `${drop.left}%`,
+              animationDuration: `${drop.duration}s`,
+              animationDelay: `${drop.delay}s`,
+              opacity: drop.opacity,
+              transform: `scaleY(${drop.scale})`,
+            }}
+          />
+        ))}
+      </div>
 
       <button className="scene-back-btn" onClick={onBack}>
         ← Retour
@@ -1129,6 +1459,15 @@ export default function MuncieFloodView({ onBack }: Props) {
             <div className="building-row">
               <span className="building-label">Adresse</span>
               <span className="building-value">{buildingInfo.address}</span>
+            </div>
+            <div className="building-row">
+              <span className="building-label">Inondé</span>
+              <span
+                className="building-value"
+                style={{ color: buildingInfo.flooded ? '#ff3b30' : '#7bd88f' }}
+              >
+                {buildingInfo.flooded ? 'Oui' : 'Non'}
+              </span>
             </div>
           </div>
 
