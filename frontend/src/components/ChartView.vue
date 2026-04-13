@@ -24,10 +24,9 @@ const isRadar = computed(() => props.visual.chart_type === 'radar')
 
 const title = computed(() => {
   const station = props.visual.station || 'La Rochelle'
-  const type = props.visual.chart_type || 'line'
-  if (isRadial.value) return `Répartition du niveau marin — ${station}`
-  if (isRadar.value)  return `Profil radial du niveau marin — ${station}`
-  return `Évolution du niveau marin — ${station}`
+  if (isRadial.value) return `Répartition — ${station}`
+  if (isRadar.value)  return `Profil radial — ${station}`
+  return station
 })
 
 const PALETTE = [
@@ -59,7 +58,7 @@ const chartData = computed(() => {
     return {
       labels: props.visual.labels,
       datasets: [{
-        label: `Anomalie (${unit.value})`,
+        label: unit.value,
         data: props.visual.values,
         fill: true,
         borderColor: '#22d3ee',
@@ -75,7 +74,7 @@ const chartData = computed(() => {
   return {
     labels: props.visual.labels,
     datasets: [{
-      label: `Anomalie (${unit.value})`,
+      label: unit.value,
       data: props.visual.values,
       fill: props.visual.chart_type === 'line',
       borderColor: '#22d3ee',
