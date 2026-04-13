@@ -224,31 +224,44 @@ def get_maree_journee(date: str) -> dict:
     day_start = day.replace(hour=0, minute=0, second=0)
     day_end   = day.replace(hour=23, minute=59, second=59)
     futur = day_end > now
+    source_note = ""
 
-    if futur or day >= CUTOFF:
-        entries = _fetch_shom(day_start, day_end, predict=futur)
-        source = "API SHOM prédictions" if futur else "API SHOM observations"
-    else:
-        all_entries = _read_local_files()
-        date_shom = date.replace("-", "/")   # "2024-06-15" → "2024/06/15"
-        entries = [
-            e for e in all_entries
-            if e.get("timestamp", "").startswith(date_shom)
-        ]
+    all_local = _read_local_files()
+
+    if not futur:
+        # Date passée : données locales SHOM
+        date_shom = date.replace("-", "/")
+        entries = [e for e in all_local if e.get("timestamp", "").startswith(date_shom)]
         source = "Fichiers JSON SHOM validés"
+    else:
+        # Date future : l'API SHOM ne fournit pas de prédictions via ce endpoint.
+        # On utilise le même jour de l'année précédente (données réelles SHOM)
+        # comme approximation — les marées sont cycliques (cycle de 18,6 ans).
+        ref_year = day.year - 1
+        # Cherche d'abord l'année précédente, puis N-2 si vide
+        for delta in range(1, 7):
+            ref_date = date.replace(str(day.year), str(day.year - delta), 1)
+            ref_shom = ref_date.replace("-", "/")
+            entries = [e for e in all_local if e.get("timestamp", "").startswith(ref_shom)]
+            if entries:
+                ref_year = day.year - delta
+                break
+        source = f"Données SHOM {ref_year} (même date, cycle marégraphique)"
+        source_note = f" — estimation basée sur {ref_year}"
 
     if not entries:
         return {"error": f"Aucune donnée disponible pour le {date}"}
 
     # Trie et formate les données horaires
+    # Pour les dates futures, les entrées viennent d'une année de référence :
+    # on ne filtre pas par date absolue, juste on prend toutes les entrées déjà filtrées.
     parsed = []
     for e in entries:
         try:
             ts = datetime.strptime(e["timestamp"], "%Y/%m/%d %H:%M:%S")
         except ValueError:
             continue
-        if day_start <= ts <= day_end:
-            parsed.append((ts, round(float(e["value"]), 3)))
+        parsed.append((ts.replace(year=day.year), round(float(e["value"]), 3)))
 
     parsed.sort(key=lambda x: x[0])
 
@@ -265,12 +278,13 @@ def get_maree_journee(date: str) -> dict:
         "values":     values,
         "chart_type": "line",
         "unit":       "m ZH",
-        "station":    f"La Rochelle — {day.strftime('%d/%m/%Y')}",
+        "station":    f"La Rochelle — {day.strftime('%d/%m/%Y')}{source_note}",
         "summary": (
             f"Hauteurs de marée à La Rochelle le {day.strftime('%d/%m/%Y')} "
             f"({len(parsed)} relevés horaires). "
             f"Haute mer : {max_h} m ZH · Basse mer : {min_h} m ZH. "
             f"Source : {source}."
+            + (f" Estimation basée sur les données du même jour en {ref_year}." if futur else "")
         ),
     }
 
