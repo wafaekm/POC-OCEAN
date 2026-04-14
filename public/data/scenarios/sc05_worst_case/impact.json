@@ -1,0 +1,78 @@
+{
+  "scenarioId": "sc05_worst_case",
+  "label": "Pire cas — +4.0 m",
+  "niveau_m": 4.0,
+  "batiments_touches": 11103,
+  "batiments_critiques": [],
+  "routes_coupees": 5302,
+  "reseaux_critiques": [
+    "secours_sante"
+  ],
+  "surface_inondee_ha": 79721.7,
+  "details": {
+    "scenario_id": "sc05_worst_case",
+    "level_m": 4.0,
+    "batiments": {
+      "n_touches": 11103,
+      "par_nature": {
+        "Industriel, agricole ou commercial": 725,
+        "Indifférenciée": 10318,
+        "Silo": 35,
+        "Fort, blockhaus, casemate": 12,
+        "Tribune": 2,
+        "Serre": 3,
+        "Tour, donjon": 8
+      },
+      "par_usage": {
+        "Indifférencié": 5915,
+        "Agricole": 136,
+        "Résidentiel": 3819,
+        "Annexe": 958,
+        "Commercial et services": 178,
+        "Industriel": 84,
+        "Sportif": 13
+      }
+    },
+    "routes": {
+      "n_troncons_coupes": 5302,
+      "par_nature": {
+        "Route empierrée": 637,
+        "Chemin": 1043,
+        "Route à 1 chaussée": 2840,
+        "Sentier": 556,
+        "Rond-point": 112,
+        "Escalier": 6,
+        "Route à 2 chaussées": 37,
+        "Bretelle": 18,
+        "Type autoroutier": 40,
+        "Bac ou liaison maritime": 13
+      },
+      "routes_nommees_coupees": []
+    },
+    "infrastructures_critiques": [],
+    "reseaux_critiques": {
+      "source": "OpenStreetMap Overpass API",
+      "date_fetch": "2026-03-30",
+      "electrique": {
+        "n_touches": 0,
+        "details": []
+      },
+      "eau": {
+        "n_touches": 0,
+        "details": []
+      },
+      "secours_sante": {
+        "n_touches": 1,
+        "details": [
+          {
+            "nom": "Centre d'incendie et de secours de Châtelaillon-Plage",
+            "lon": -1.0857119,
+            "lat": 46.0694081,
+            "osm_type": "way",
+            "osm_id": 655195021
+          }
+        ]
+      }
+    }
+  }
+}
