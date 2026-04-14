@@ -241,12 +241,12 @@ function Bubble({ msg }: { msg: Message }) {
       <div style={{ maxWidth: msg.type !== 'text' ? '96%' : '78%', width: msg.type !== 'text' ? '96%' : undefined }}>
         <div style={{ ...bubbleBase, background: isAgent ? 'rgba(13,34,64,0.9)' : 'rgba(8,60,100,0.85)', border: `1px solid rgba(34,211,238,${isAgent ? '0.18' : '0.15'})`, borderBottomLeftRadius: isAgent ? 4 : 16, borderBottomRightRadius: isAgent ? 16 : 4 }}>
           {isAgent
-            ? <div style={{ fontSize: '0.88rem', color: '#d8eef9', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(msg.content ?? '') as string) }} />
+            ? <div className="chat-md" style={{ fontSize: '0.88rem', color: '#d8eef9', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(msg.content ?? '') as string) }} />
             : <p style={{ fontSize: '0.88rem', color: '#d8eef9', margin: 0 }}>{msg.content}</p>
           }
         </div>
-        {msg.type === 'chart' && msg.visual && <ChatChartView visual={msg.visual as never} />}
-        {msg.type === 'map'   && msg.visual && <ChatMapView   visual={msg.visual as never} />}
+        {msg.type === 'chart' && msg.visual != null && <ChatChartView visual={msg.visual as never} />}
+        {msg.type === 'map'   && msg.visual != null && <ChatMapView   visual={msg.visual as never} />}
       </div>
     </div>
   )

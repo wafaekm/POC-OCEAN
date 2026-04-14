@@ -92,19 +92,17 @@ export default function App() {
         <button
           onClick={() => setChatOpen(o => !o)}
           title={chatOpen ? 'Fermer le chatbot' : 'Ouvrir le chatbot'}
+          className={`chat-btn${chatOpen ? ' open' : ''}`}
           style={{
             position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: 16, zIndex: 100,
             background: 'rgba(15,15,28,0.93)',
-            border: chatOpen ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.08)',
             borderRadius: 10,
             backdropFilter: 'blur(14px)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
             cursor: 'pointer',
             padding: '10px 14px',
             display: 'flex', alignItems: 'center', gap: 10,
             color: '#d8f0ff',
             fontFamily: 'sans-serif',
-            transition: 'border-color 0.2s',
           }}
         >
           {/* Icône bulle */}
