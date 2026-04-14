@@ -35,7 +35,7 @@
   position: absolute;
   top: 0; bottom: 0;
   width: 35%;
-  background: linear-gradient(90deg, transparent, rgba(34,211,238,0.09), transparent);
+  background: linear-gradient(90deg, transparent, rgba(56,150,255,0.35), transparent);
   transform: skewX(-18deg);
   animation: chat-shimmer 4.5s ease-in-out infinite;
   pointer-events: none;
