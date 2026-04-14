@@ -1,0 +1,14 @@
+node_modules/
+frontend/
+.venv/
+dist/
+.git/
+.claude/
+__pycache__/
+*.pyc
+.env
+.env.local
+output/
+data/MNT*
+*.asc
+*.tif

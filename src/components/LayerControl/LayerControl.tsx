@@ -2,9 +2,10 @@ import type { LayerId } from '../../types/layers.types'
 import './LayerControl.css'
 
 const LAYER_LABELS: Record<LayerId, string> = {
-  'shom-bathymetrie': 'Bathymétrie GEBCO',
-  'ppri-fill': 'Zones inondables',
+  'ppri-fill': 'Zones PPRI',
   'ppri-zones': 'Contours PPRI',
+  'critical-networks-layer': 'Réseaux critiques',
+  'flood-tiles-layer': 'Tuiles submersion',
 }
 
 interface Props {

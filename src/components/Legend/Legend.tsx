@@ -1,22 +1,32 @@
 import './Legend.css'
 
 const ITEMS = [
-  { color: '#E24B4A', label: 'Submersion forte' },
-  { color: '#EF9F27', label: 'Submersion modérée' },
-  { color: '#378ADD', label: 'Zone littorale' },
+  { color: '#1a6bbd', label: 'Zones inondées (scénario)', opacity: 0.65 },
+  { color: '#E24B4A', label: 'Zones PPRI officielles', dashed: true },
+  { color: '#3498DB', label: 'Réseau eau', dot: true },
+  { color: '#E74C3C', label: 'Secours / Santé', dot: true },
 ]
 
 export default function Legend() {
   return (
     <div className="legend">
-      <div className="legend-title">Risque submersion</div>
-      {ITEMS.map(({ color, label }) => (
+      <div className="legend-title">Légende</div>
+      {ITEMS.map(({ color, label, opacity, dashed, dot }) => (
         <div key={label} className="legend-row">
-          <span className="legend-swatch" style={{ background: color }} />
-          <span>{label}</span>
+          {dot ? (
+            <span className="legend-dot" style={{ background: color }} />
+          ) : dashed ? (
+            <span className="legend-dashed" style={{ borderColor: color }} />
+          ) : (
+            <span
+              className="legend-swatch"
+              style={{ background: color, opacity: opacity ?? 1 }}
+            />
+          )}
+          <span className="legend-label">{label}</span>
         </div>
       ))}
-      <div className="legend-source">Source : SHOM / Géorisques</div>
+      <div className="legend-source">Source : IGN / SHOM / OSM</div>
     </div>
   )
 }

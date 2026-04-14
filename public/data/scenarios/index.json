@@ -1,0 +1,27 @@
+[
+  {
+    "id": "sc01_grande_maree",
+    "label": "Grande marée vive-eau (référence)",
+    "niveau_m": 3.181
+  },
+  {
+    "id": "sc02_xynthia",
+    "label": "Xynthia — surcote +1.5 m",
+    "niveau_m": 4.681
+  },
+  {
+    "id": "sc03_ipcc_2050",
+    "label": "IPCC 2050 (SSP2-4.5 médiane)",
+    "niveau_m": 3.374
+  },
+  {
+    "id": "sc04_ipcc_2100",
+    "label": "IPCC 2100 (SSP2-4.5 médiane)",
+    "niveau_m": 3.662
+  },
+  {
+    "id": "sc05_worst_case",
+    "label": "Pire cas — +4.0 m",
+    "niveau_m": 4.0
+  }
+]

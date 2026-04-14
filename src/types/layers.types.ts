@@ -1,1 +1,5 @@
-export type LayerId = 'shom-bathymetrie' | 'ppri-zones' | 'ppri-fill'
+export type LayerId =
+  | 'ppri-zones'
+  | 'ppri-fill'
+  | 'critical-networks-layer'
+  | 'flood-tiles-layer'
