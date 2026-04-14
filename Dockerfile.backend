@@ -12,9 +12,8 @@ RUN pip install --no-cache-dir \
 # Code backend
 COPY backend/ /app/backend/
 
-# Données lues par tools.py (chemins relatifs à la racine du projet)
-COPY data/maregraphie/ /app/data/maregraphie/
-COPY public/data/      /app/public/data/
+# Toutes les données sont sous public/data/ (maregraphie inclus)
+COPY public/data/ /app/public/data/
 
 WORKDIR /app/backend
 

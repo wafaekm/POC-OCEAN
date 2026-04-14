@@ -17,14 +17,9 @@ import urllib.request
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "data", "maregraphie"
-)
-PUBLIC_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "public", "data"
-)
+_ROOT           = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PUBLIC_DATA_DIR = os.path.join(_ROOT, "public", "data")
+DATA_DIR        = os.path.join(PUBLIC_DATA_DIR, "maregraphie")
 
 # ── Constantes marée ────────────────────────────────────────────────────────
 
