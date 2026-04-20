@@ -182,14 +182,24 @@ def get_maree_actuelle() -> dict:
     if now >= CUTOFF:
         entries = _fetch_shom(now - timedelta(days=2), now)
         source = "API SHOM observations (sources=2)"
+        best = _closest_entry(entries, now) if entries else None
+        # Si l'obs la plus récente a plus de 2h de retard, on bascule sur les prédictions
+        if best:
+            try:
+                ts = datetime.strptime(best["timestamp"], "%Y/%m/%d %H:%M:%S")
+                if abs((now - ts).total_seconds()) > 7200:
+                    best = None
+            except ValueError:
+                best = None
+        if best is None:
+            pred_entries = _fetch_shom(now - timedelta(hours=1), now + timedelta(hours=1), predict=True)
+            best = _closest_entry(pred_entries, now) if pred_entries else None
+            source = "API SHOM prédictions (sources=1)"
     else:
         entries = _read_local_files()
         source = "Fichiers JSON SHOM validés"
+        best = _closest_entry(entries, now) if entries else None
 
-    if not entries:
-        return {"error": "Aucune donnée marégraphique disponible"}
-
-    best = _closest_entry(entries, now)
     if best is None:
         return {"error": "Impossible de trouver un point marégraphique"}
 
@@ -293,8 +303,11 @@ def get_maree_pour_date(date: str, heure: str = "12:00") -> dict:
     now = datetime.now()
     futur = target > now
 
-    if futur:
-        entries = _fetch_shom(target - timedelta(days=1), target + timedelta(days=1), predict=True)
+    # Considère "futur" si la cible est dans le futur OU si elle est très récente
+    # (moins de 3h passées) — les obs SHOM peuvent avoir du retard
+    recent_past = not futur and (now - target).total_seconds() < 10800
+    if futur or recent_past:
+        entries = _fetch_shom(target - timedelta(hours=6), target + timedelta(hours=6), predict=True)
         source = "API SHOM prédictions (sources=1)"
     elif target >= CUTOFF:
         entries = _fetch_shom(target - timedelta(days=1), target + timedelta(days=1))
