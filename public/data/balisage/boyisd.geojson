@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "boyisd",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-15,
+"features": [
+{ "type": "Feature", "properties": { "id": 6, "inspireid": "FR000006752900001", "posacc": null, "objnam": "Aix NW", "nobjnm": null, "inform": null, "ninfom": null, "numald": "1700018", "persta": null, "perend": null, "boyshp": 5, "colour": "2,3,2", "colpat": "1", "status": null, "aisatn": "", "daymar": "", "topmar": "FR000006753200001", "fogsig": "", "radsta": "", "rtpbcn": "", "rdosta": "", "sistat": "", "sistaw": "", "lights": "" }, "geometry": { "type": "Point", "coordinates": [ -1.2055795, 46.0398327 ] } },
+{ "type": "Feature", "properties": { "id": 23, "inspireid": "FR000006685500001", "posacc": null, "objnam": null, "nobjnm": null, "inform": null, "ninfom": null, "numald": "8500184", "persta": null, "perend": null, "boyshp": 1, "colour": "2,3,2", "colpat": "1", "status": null, "aisatn": "", "daymar": "", "topmar": "FR000006685800001", "fogsig": "", "radsta": "", "rtpbcn": "", "rdosta": "", "sistat": "", "sistaw": "", "lights": "" }, "geometry": { "type": "Point", "coordinates": [ -1.3160734, 46.2935055 ] } }
+]
+}

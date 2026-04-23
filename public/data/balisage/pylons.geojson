@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "pylons",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-15,
+"features": [
+{ "type": "Feature", "properties": { "id": 60, "inspireid": "FR000013148500003", "posacc": 2.0, "objnam": null, "nobjnm": null, "inform": null, "ninfom": null, "numald": null, "condtn": null, "convis": 2, "catpyl": 4, "colour": null, "colpat": null, "height": null, "verlen": null, "watlev": null, "aisatn": null, "daymar": null, "topmar": null, "fogsig": null, "radsta": null, "rtpbcn": null, "rdosta": null, "sistat": null, "sistaw": null, "lights": null }, "geometry": { "type": "Point", "coordinates": [ -1.1611981, 46.1516475 ] } },
+{ "type": "Feature", "properties": { "id": 61, "inspireid": "FR000013148400003", "posacc": 2.0, "objnam": null, "nobjnm": null, "inform": null, "ninfom": null, "numald": null, "condtn": null, "convis": 2, "catpyl": 4, "colour": null, "colpat": null, "height": null, "verlen": null, "watlev": null, "aisatn": null, "daymar": null, "topmar": null, "fogsig": null, "radsta": null, "rtpbcn": null, "rdosta": null, "sistat": null, "sistaw": null, "lights": null }, "geometry": { "type": "Point", "coordinates": [ -1.1608554, 46.1517948 ] } },
+{ "type": "Feature", "properties": { "id": 62, "inspireid": "FR000013148300003", "posacc": 2.0, "objnam": null, "nobjnm": null, "inform": null, "ninfom": null, "numald": null, "condtn": null, "convis": 2, "catpyl": 4, "colour": null, "colpat": null, "height": null, "verlen": null, "watlev": null, "aisatn": null, "daymar": null, "topmar": null, "fogsig": null, "radsta": null, "rtpbcn": null, "rdosta": null, "sistat": null, "sistaw": null, "lights": null }, "geometry": { "type": "Point", "coordinates": [ -1.1605059, 46.1519449 ] } },
+{ "type": "Feature", "properties": { "id": 63, "inspireid": "FR000013148200003", "posacc": 2.0, "objnam": null, "nobjnm": null, "inform": null, "ninfom": null, "numald": null, "condtn": null, "convis": 2, "catpyl": 4, "colour": null, "colpat": null, "height": null, "verlen": null, "watlev": null, "aisatn": null, "daymar": null, "topmar": null, "fogsig": null, "radsta": null, "rtpbcn": null, "rdosta": null, "sistat": null, "sistaw": null, "lights": null }, "geometry": { "type": "Point", "coordinates": [ -1.1601677, 46.1520902 ] } }
+]
+}

@@ -1,0 +1,748 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans, sans-serif); }
+
+  .app {
+    width: 100%;
+    background: #0a0e1a;
+    color: #e8f0fe;
+    min-height: 700px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: rgba(10, 14, 26, 0.97);
+    border-bottom: 1px solid rgba(0, 140, 255, 0.15);
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: relative;
+    z-index: 50;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-atos {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 140, 255, 0.2);
+    background: rgba(0, 140, 255, 0.06);
+  }
+
+  .logo-atos svg { width: 42px; height: 18px; }
+
+  .logo-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255,255,255,0.12);
+  }
+
+  .logo-poc {
+    font-size: 12px;
+    font-weight: 600;
+    color: #00b4ff;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: rgba(200, 220, 255, 0.4);
+    letter-spacing: 0.04em;
+  }
+
+  .topbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+  }
+
+  .tab-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(200, 220, 255, 0.45);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+  }
+
+  .tab-btn.active {
+    background: rgba(0, 140, 255, 0.18);
+    border-color: rgba(0, 140, 255, 0.4);
+    color: #00b4ff;
+  }
+
+  .tab-btn:hover:not(.active) {
+    background: rgba(255,255,255,0.05);
+    color: rgba(200, 220, 255, 0.7);
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #00d084;
+    box-shadow: 0 0 6px #00d084;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .status-label { color: rgba(200, 220, 255, 0.45); }
+  .zone-label { color: rgba(200, 220, 255, 0.6); font-weight: 600; }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: flex;
+    height: 648px;
+  }
+
+  /* ── LEFT SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: rgba(8, 12, 24, 0.9);
+    border-right: 1px solid rgba(0, 140, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 12px 0;
+  }
+
+  .sidebar-section {
+    padding: 6px 14px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 4px;
+  }
+
+  .sidebar-section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200, 220, 255, 0.3);
+    margin-bottom: 8px;
+  }
+
+  .view-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(200, 220, 255, 0.55);
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    margin-bottom: 3px;
+  }
+
+  .view-btn.active {
+    background: rgba(0, 140, 255, 0.15);
+    border-color: rgba(0, 140, 255, 0.3);
+    color: #d0e8ff;
+  }
+
+  .view-btn:hover:not(.active) {
+    background: rgba(255,255,255,0.04);
+    color: rgba(200, 220, 255, 0.75);
+  }
+
+  .view-icon {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  .icon-2d { background: rgba(0, 140, 255, 0.2); color: #00b4ff; }
+  .icon-flood { background: rgba(226, 75, 74, 0.2); color: #E24B4A; }
+  .icon-ww3 { background: rgba(0, 200, 180, 0.2); color: #00c8b4; }
+  .icon-lidar { background: rgba(239, 159, 39, 0.2); color: #EF9F27; }
+  .icon-ais { background: rgba(106, 220, 136, 0.2); color: #6adc88; }
+
+  /* Layer toggles */
+  .layer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 2px;
+    font-size: 10px;
+    color: rgba(200, 220, 255, 0.55);
+  }
+
+  .layer-left { display: flex; align-items: center; gap: 7px; }
+
+  .layer-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .toggle-small {
+    width: 28px; height: 15px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .toggle-small.on { background: rgba(0, 140, 255, 0.6); }
+
+  .toggle-small::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s;
+  }
+
+  .toggle-small.on::after { transform: translateX(13px); }
+
+  /* ── MAP AREA ── */
+  .map-area {
+    flex: 1;
+    position: relative;
+    background: #0d1225;
+    overflow: hidden;
+  }
+
+  .map-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 45% 55%, rgba(0, 60, 140, 0.25) 0%, transparent 70%),
+      radial-gradient(ellipse 30% 30% at 70% 30%, rgba(0, 30, 80, 0.3) 0%, transparent 60%);
+  }
+
+  /* Simulated map grid */
+  .map-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 100, 200, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 100, 200, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Simulated coastline */
+  .map-coast {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* WW3 points simulation */
+  .ww3-points {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    width: 230px;
+    flex-shrink: 0;
+    background: rgba(8, 12, 24, 0.9);
+    border-left: 1px solid rgba(0, 140, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .rpanel-block {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .rpanel-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200, 220, 255, 0.3);
+    margin-bottom: 10px;
+  }
+
+  /* Scenario buttons */
+  .scenario-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 9px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 10px;
+  }
+
+  .scenario-item.active {
+    background: rgba(55, 138, 221, 0.2);
+    border-color: #378ADD;
+    color: #d0e8ff;
+  }
+
+  .scenario-item:not(.active):hover {
+    background: rgba(255,255,255,0.04);
+  }
+
+  .scenario-item:not(.active) { color: rgba(200, 220, 255, 0.55); }
+
+  .s-badge {
+    font-weight: 700;
+    color: #5ab4ff;
+    font-size: 11px;
+  }
+
+  /* Impact panel */
+  .impact-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: rgba(200, 220, 255, 0.5);
+  }
+
+  .impact-row:last-child { border-bottom: none; }
+  .impact-val { font-weight: 600; color: #d0e8ff; }
+  .impact-danger { color: #E24B4A !important; }
+  .impact-warn { color: #EF9F27 !important; }
+
+  /* WW3 mini control */
+  .ww3-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .ww3-stat-box {
+    background: rgba(0, 180, 255, 0.05);
+    border: 1px solid rgba(0, 160, 230, 0.12);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+
+  .ww3-stat-lbl { font-size: 8px; color: rgba(200, 220, 255, 0.35); letter-spacing: 0.1em; text-transform: uppercase; }
+  .ww3-stat-val { font-size: 13px; font-weight: 700; color: #00c8ff; margin-top: 1px; }
+  .ww3-stat-val.dimmed { color: #d0e8ff; font-size: 11px; }
+
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(0, 180, 255, 0.1);
+    border-radius: 2px;
+    margin: 8px 0;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, #0055ff, #00c8ff);
+    border-radius: 2px;
+  }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .ctrl-btn {
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    border: 1px solid rgba(0, 180, 255, 0.2);
+    background: rgba(0, 180, 255, 0.06);
+    color: #00c8ff;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .ctrl-btn.play {
+    background: #00c8ff;
+    color: #04080f;
+    border-color: #00c8ff;
+  }
+
+  .frame-count {
+    font-size: 8px;
+    color: rgba(200, 220, 255, 0.3);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  /* ── BOTTOM BAR ── */
+  .bottombar {
+    position: absolute;
+    bottom: 0; left: 220px; right: 230px;
+    height: 36px;
+    background: rgba(8, 12, 24, 0.92);
+    border-top: 1px solid rgba(0, 140, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 20px;
+    font-size: 10px;
+    color: rgba(200, 220, 255, 0.35);
+    z-index: 10;
+  }
+
+  .bb-item { display: flex; align-items: center; gap: 5px; }
+  .bb-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* ── MAP OVERLAYS (decorative) ── */
+  .map-badge {
+    position: absolute;
+    background: rgba(8, 12, 24, 0.88);
+    border: 1px solid rgba(226, 75, 74, 0.35);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 9px;
+    color: rgba(200, 220, 255, 0.7);
+    pointer-events: none;
+  }
+
+  .marker-pin {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+
+  /* annotation arrow */
+  .annot {
+    position: absolute;
+    font-size: 9px;
+    color: rgba(200, 220, 255, 0.3);
+    pointer-events: none;
+    background: rgba(8, 12, 24, 0.7);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+</style>
+
+<div class="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-atos">
+        <!-- Atos SVG logo (simplified) -->
+        <svg viewBox="0 0 80 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="24" font-family="Arial Black, sans-serif" font-size="26" font-weight="900" fill="#0099FF" letter-spacing="-1">Atos</text>
+        </svg>
+        <div class="logo-divider"></div>
+        <div>
+          <div class="logo-poc">POC Océan</div>
+          <div class="logo-sub">Géo-Twin Littoral</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <button class="tab-btn active">Carte 2D</button>
+      <button class="tab-btn">Simulation 3D</button>
+      <button class="tab-btn">WW3 Surface</button>
+      <button class="tab-btn">LiDAR</button>
+      <button class="tab-btn">AIS Live</button>
+    </div>
+
+    <div class="topbar-right">
+      <div class="status-dot"></div>
+      <span class="status-label">Données actives</span>
+      <span class="zone-label">La Rochelle</span>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="section-label">Vues disponibles</div>
+        <button class="view-btn active">
+          <div class="view-icon icon-2d">2D</div>
+          Carte risques
+        </button>
+        <button class="view-btn">
+          <div class="view-icon icon-flood">🌊</div>
+          Inondation HEC-RAS
+        </button>
+        <button class="view-btn">
+          <div class="view-icon icon-ww3">~</div>
+          Houle WW3 3D
+        </button>
+        <button class="view-btn">
+          <div class="view-icon icon-lidar">▲</div>
+          LiDAR 3D Tiles
+        </button>
+        <button class="view-btn">
+          <div class="view-icon icon-ais">●</div>
+          AIS temps réel
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Couches actives</div>
+        <div class="layer-row">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#E24B4A;"></div>
+            Zones PPRI
+          </div>
+          <div class="toggle-small on"></div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#378ADD;"></div>
+            Réseaux eau
+          </div>
+          <div class="toggle-small on"></div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#E74C3C;"></div>
+            Secours / Santé
+          </div>
+          <div class="toggle-small on"></div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#6adc88;"></div>
+            Bâtiments 3D
+          </div>
+          <div class="toggle-small"></div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#00c8ff;"></div>
+            Simulation WW3
+          </div>
+          <div class="toggle-small"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Source</div>
+        <div style="font-size:9px; color:rgba(200,220,255,0.3); line-height:1.6;">
+          IGN · SHOM · OSM<br>
+          Mercator Ocean · WAVEWATCH III<br>
+          BD TOPO® · Géoplateforme
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="map-area">
+      <div class="map-bg"></div>
+      <div class="map-grid"></div>
+
+      <!-- Simulated coast SVG -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" viewBox="0 0 600 612" preserveAspectRatio="xMidYMid slice">
+        <!-- Ocean water fill -->
+        <path d="M0,0 L600,0 L600,612 L0,612 Z" fill="rgba(0,40,100,0.18)"/>
+        <!-- Coastline shape -->
+        <path d="M180,80 Q200,120 195,180 Q190,240 210,280 Q230,320 220,380 Q210,440 230,490 Q240,530 260,612 L0,612 L0,0 Z"
+              fill="rgba(30,60,40,0.35)" stroke="rgba(100,160,100,0.3)" stroke-width="1"/>
+        <!-- PPRI zone (red, dashed) -->
+        <path d="M200,280 Q240,260 280,270 Q320,280 340,320 Q360,360 330,390 Q300,420 260,410 Q220,400 205,370 Q190,340 200,280 Z"
+              fill="rgba(226,75,74,0.15)" stroke="#E24B4A" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- Flood tiles simulation -->
+        <path d="M205,290 Q235,270 265,278 Q300,285 315,315 Q330,345 310,368 Q285,395 255,386 Q220,375 208,350 Q198,330 205,290 Z"
+              fill="rgba(55,138,221,0.35)"/>
+        <!-- Critical network dots -->
+        <circle cx="240" cy="300" r="5" fill="#3498DB" stroke="white" stroke-width="1.5"/>
+        <circle cx="280" cy="330" r="5" fill="#E74C3C" stroke="white" stroke-width="1.5"/>
+        <circle cx="260" cy="360" r="5" fill="#3498DB" stroke="white" stroke-width="1.5"/>
+        <!-- La Rochelle marker -->
+        <circle cx="248" cy="310" r="7" fill="none" stroke="#E24B4A" stroke-width="2" opacity="0.7"/>
+        <circle cx="248" cy="310" r="3" fill="#E24B4A"/>
+        <!-- WW3 points (ocean) -->
+        <circle cx="90" cy="150" r="5" fill="rgba(0,200,255,0.6)" opacity="0.8"/>
+        <circle cx="130" cy="200" r="6" fill="rgba(0,204,255,0.7)" opacity="0.85"/>
+        <circle cx="70" cy="250" r="5" fill="rgba(0,153,255,0.6)" opacity="0.75"/>
+        <circle cx="110" cy="310" r="7" fill="rgba(102,255,204,0.7)" opacity="0.9"/>
+        <circle cx="60" cy="360" r="5" fill="rgba(255,221,0,0.7)" opacity="0.8"/>
+        <circle cx="100" cy="420" r="6" fill="rgba(0,200,255,0.65)" opacity="0.8"/>
+        <circle cx="50" cy="180" r="4" fill="rgba(0,180,255,0.5)" opacity="0.7"/>
+        <circle cx="150" cy="140" r="4" fill="rgba(0,180,255,0.55)" opacity="0.75"/>
+      </svg>
+
+      <!-- Map annotations -->
+      <div class="map-badge" style="top:100px; left:180px;">
+        <div style="font-weight:700; color:#E24B4A; margin-bottom:2px;">Zone PPRI</div>
+        <div>Risque inondation modéré</div>
+      </div>
+
+      <div class="annot" style="top:68px; left:250px;">▼ La Rochelle</div>
+
+      <!-- Bottom bar (inside map area) -->
+      <div class="bottombar">
+        <div class="bb-item">
+          <div class="bb-dot" style="background:#E24B4A;"></div>
+          PPRI actif
+        </div>
+        <div class="bb-item">
+          <div class="bb-dot" style="background:#378ADD;"></div>
+          Scénario S1 chargé
+        </div>
+        <div class="bb-item">
+          <div class="bb-dot" style="background:#00c8ff;"></div>
+          WW3 désactivé
+        </div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+          <span>Zoom 12 · 46.16°N 1.15°O</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+
+      <!-- Scénarios submersion -->
+      <div class="rpanel-block">
+        <div class="rpanel-title">Scénarios de submersion</div>
+        <div class="scenario-item active">
+          <span>Tempête côtière</span>
+          <span class="s-badge">+1m</span>
+        </div>
+        <div class="scenario-item">
+          <span>Xynthia 2010</span>
+          <span class="s-badge">+2m</span>
+        </div>
+        <div class="scenario-item">
+          <span>Scénario extrême</span>
+          <span class="s-badge">+3m</span>
+        </div>
+        <div style="margin-top:8px; font-size:9px; color:rgba(200,220,255,0.3); text-align:center; cursor:pointer;">
+          ↺ Réinitialiser la vue
+        </div>
+      </div>
+
+      <!-- Impact estimé -->
+      <div class="rpanel-block">
+        <div class="rpanel-title">Impact estimé — S1</div>
+        <div class="impact-row">
+          <span>Niveau d'eau</span>
+          <span class="impact-val">1.0m NGF</span>
+        </div>
+        <div class="impact-row">
+          <span>Bâtiments touchés</span>
+          <span class="impact-val impact-danger">1 240</span>
+        </div>
+        <div class="impact-row">
+          <span>Routes coupées</span>
+          <span class="impact-val impact-warn">38</span>
+        </div>
+        <div class="impact-row">
+          <span>Surface inondée</span>
+          <span class="impact-val">4 km²</span>
+        </div>
+        <div class="impact-row">
+          <span>Réseaux critiques</span>
+          <span class="impact-val impact-danger">eau, santé</span>
+        </div>
+      </div>
+
+      <!-- WW3 mini -->
+      <div class="rpanel-block">
+        <div class="rpanel-title" style="display:flex; align-items:center; justify-content:space-between;">
+          <span>Simulation WW3</span>
+          <span style="font-size:9px; background:rgba(0,180,255,0.1); border:1px solid rgba(0,180,255,0.25); border-radius:10px; padding:2px 8px; color:#00c8ff; cursor:pointer;">OFF</span>
+        </div>
+        <div class="ww3-stat-grid">
+          <div class="ww3-stat-box">
+            <div class="ww3-stat-lbl">Hs max</div>
+            <div class="ww3-stat-val">1.41m</div>
+          </div>
+          <div class="ww3-stat-box">
+            <div class="ww3-stat-lbl">Heure</div>
+            <div class="ww3-stat-val dimmed">14:00</div>
+          </div>
+          <div class="ww3-stat-box">
+            <div class="ww3-stat-lbl">Hs moy</div>
+            <div class="ww3-stat-val dimmed">0.72m</div>
+          </div>
+          <div class="ww3-stat-box">
+            <div class="ww3-stat-lbl">Pts actifs</div>
+            <div class="ww3-stat-val dimmed">2 840</div>
+          </div>
+        </div>
+        <div style="font-size:9px; color:rgba(0,200,255,0.7); margin-bottom:4px;">02/04/2026 · 14:00 UTC</div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+        <div class="ctrl-row">
+          <div class="ctrl-btn">◀</div>
+          <div class="ctrl-btn play">▶</div>
+          <div class="ctrl-btn">▶</div>
+          <div class="frame-count">5 / 14</div>
+        </div>
+      </div>
+
+      <!-- Légende -->
+      <div class="rpanel-block">
+        <div class="rpanel-title">Légende</div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          <div style="display:flex; align-items:center; gap:7px; font-size:9px; color:rgba(200,220,255,0.55);">
+            <div style="width:18px;height:8px;background:rgba(55,138,221,0.55);border-radius:2px;flex-shrink:0;"></div>
+            Submersion simulée
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; font-size:9px; color:rgba(200,220,255,0.55);">
+            <div style="width:18px;height:0;border-top:2px dashed #E24B4A;flex-shrink:0;"></div>
+            Périmètre PPRI
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; font-size:9px; color:rgba(200,220,255,0.55);">
+            <div style="width:8px;height:8px;border-radius:50%;background:#3498DB;border:1px solid white;flex-shrink:0;"></div>
+            Réseau eau
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; font-size:9px; color:rgba(200,220,255,0.55);">
+            <div style="width:8px;height:8px;border-radius:50%;background:#E74C3C;border:1px solid white;flex-shrink:0;"></div>
+            Secours / Santé
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

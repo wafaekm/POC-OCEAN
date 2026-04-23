@@ -1,0 +1,14 @@
+{
+  "layers": [
+    "aisatn",
+    "bcncar",
+    "bcnisd",
+    "bcnlat",
+    "bcnspp",
+    "boycar",
+    "boyinb",
+    "boyisd",
+    "boylat",
+    "boysaw"
+  ]
+}

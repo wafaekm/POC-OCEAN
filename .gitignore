@@ -32,3 +32,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+public/processed/ww3_aligned/export/current.czml
+public/processed/ww3_aligned/export/wind.czml

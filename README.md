@@ -7,7 +7,7 @@ Zone pilote : **La Rochelle (Charente-Maritime)**
 
 ## Modules
 
-### Agent IA (backend/)
+### Agent IA (`backend/`)
 
 Agent conversationnel (en français) spécialisé sur la submersion marine et les risques côtiers à La Rochelle. Il s'appuie sur les données marégraphiques du SHOM et un LLM Mistral.
 
@@ -29,25 +29,28 @@ pip install -r requirements.txt
 ```
 
 Créer un `.env` à la racine :
-```
-MISTRAL_API_KEY=ta_clé_ici
+
+```env
+MISTRAL_API_KEY=ta_cle_ici
 ```
 
 Lancement :
+
 ```bash
 py backend/main.py
 ```
 
 ---
 
-### Visualisation cartographique (src/)
+### Visualisation cartographique (`src/`)
 
 Démonstrateur de simulation de submersion marine en 2D et 3D.
 
 **Prérequis :**
 - Node.js >= 18
-- Compte [Maptiler](https://maptiler.com) (free tier)
-- Compte [Cesium Ion](https://ion.cesium.com) (free tier)
+- Compte [MapTiler](https://www.maptiler.com/) (free tier)
+- Compte [Cesium Ion](https://cesium.com/ion/) (free tier)
+- Compte [AISStream](https://aisstream.io/) pour la vue AIS live
 
 #### Installation (frontend)
 
@@ -56,19 +59,22 @@ npm install
 ```
 
 Créer un `.env.local` à la racine :
+
 ```env
-VITE_MAPTILER_KEY=ta_clé_maptiler
+VITE_MAPTILER_KEY=ta_cle_maptiler
 VITE_CESIUM_TOKEN=ton_token_cesium_ion
 ```
 
 Lancement :
+
 ```bash
 npm run dev
 ```
 
-L'application est disponible sur [http://localhost:5173](http://localhost:5173)
+L'application est disponible sur http://localhost:5173
 
 Build production :
+
 ```bash
 npm run build
 npm run preview
@@ -77,6 +83,66 @@ npm run preview
 **Fonctionnalités :**
 - Vue 2D (MapLibre) : carte interactive de submersion
 - Vue 3D (CesiumJS) : globe avec animation des zones inondées
+- Vue 3D LiDAR : nuages de points 3D Tiles
+- Vue AIS live : visualisation temps réel des navires autour de La Rochelle
+- Affichage du balisage maritime à partir de couches GeoJSON
+
+---
+
+### AIS Live (Cesium + AISStream)
+
+Le frontend ne se connecte pas directement à AISStream.  
+Un serveur relais WebSocket local est utilisé entre le frontend et AISStream.
+
+**Architecture :**
+
+```
+Frontend React/Cesium  -->  ws://localhost:8787
+                                 |
+                                 v
+                        ais-relay.mjs
+                                 |
+                                 v
+                 wss://stream.aisstream.io/v0/stream
+```
+
+#### Configuration AIS
+
+Créer ou compléter un fichier `.env` à la racine :
+
+```env
+AISSTREAM_API_KEY=ta_cle_aisstream
+```
+
+> ⚠️ Cette clé est utilisée uniquement par le serveur relais. Elle ne doit pas être exposée dans le frontend avec une variable `VITE_*`.
+
+#### Lancer la connexion AIS
+
+**Étape 1 — démarrer le frontend**
+```bash
+npm run dev
+```
+
+**Étape 2 — démarrer le relais WebSocket local**
+
+Sous PowerShell (Windows) :
+```powershell
+$env:AISSTREAM_API_KEY="ta_cle_aisstream"
+node .\ais-relay.mjs
+```
+
+Sous macOS / Linux :
+```bash
+AISSTREAM_API_KEY=ta_cle_aisstream node ./ais-relay.mjs
+```
+
+Si tout est correct, le terminal affiche :
+```
+Relay listening on ws://localhost:8787
+Frontend connected
+Connected to AISStream
+Subscription sent to AISStream
+```
 
 ---
 
@@ -96,13 +162,39 @@ npm run preview
 │       ├── LayerControl/
 │       ├── Legend/
 │       └── ViewToggle/
-├── public/                   # Données géo (GeoJSON, flood frames...)
-│   └── data/
+├── public/
+│   ├── data/
+│   │   └── balisage/         # GeoJSON de balisage
+│   ├── models/
+│   │   └── boat.glb          # Modèle 3D navire pour AIS
+│   └── flood_animation/
 ├── frontend/                 # Interface chat agent IA (Vite)
 │   └── src/
 ├── data/
 │   └── maregraphie/          # Données SHOM 2020–2025 (JSON)
 ├── scripts/
+├── ais-relay.mjs             # Relais WebSocket local pour AISStream
 ├── requirements.txt
+├── package.json
 └── .env.example
 ```
+
+---
+
+## Résumé du démarrage
+
+| Service | Commande |
+|---|---|
+| Backend IA | `py backend/main.py` |
+| Frontend | `npm run dev` |
+| Relais AIS (Windows) | `$env:AISSTREAM_API_KEY="..." ; node .\ais-relay.mjs` |
+| Relais AIS (Linux/Mac) | `AISSTREAM_API_KEY=... node ./ais-relay.mjs` |
+
+---
+
+## Notes
+
+- La clé AISStream doit rester côté relais backend uniquement.
+- Le frontend se connecte au relais local via `ws://localhost:8787`.
+- Si le relais n'est pas lancé, la vue AIS ne pourra pas recevoir de données temps réel.
+- Si le modèle `boat.glb` est absent, les navires ne pourront pas être affichés correctement en 3D.
