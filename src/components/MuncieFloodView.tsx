@@ -6,6 +6,7 @@ import {
   createOsmBuildingsAsync,
   IonImageryProvider,
   Cartesian3,
+  Cartesian4,
   Cartographic,
   Math as CesiumMath,
   Color,
@@ -29,6 +30,12 @@ import {
   sampleTerrainMostDetailed,
   buildModuleUrl,
   JulianDate,
+  Matrix4,
+  PostProcessStage,
+  Transforms,
+  BillboardCollection,
+  NearFarScalar,
+  VerticalOrigin,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import './Map3D/Map3D.css'
@@ -64,8 +71,23 @@ const WAVE_3_SPEED_MPS = 1.8
 const WAVE_3_DIR_X = 0.7
 const WAVE_3_DIR_Y = 0.7
 
+const WATER_RIPPLE_SCALE = 78.0
+const WATER_RIPPLE_SPEED = 0.42
+const WATER_RIPPLE_INTENSITY = 0.5
+const WATER_RIPPLE_ALPHA_BOOST = 0.06
+const WATER_RIPPLE_MAX_RADIUS = 0.16
+
 const FLOODED_BUILDING_COLOR = Color.fromCssColorString('#ff3b30')
 const SELECTED_BUILDING_COLOR = Color.fromCssColorString('#4a9eff')
+
+const BUILDING_LIGHT = Color.fromCssColorString('#f6efe5')
+const BUILDING_MID = Color.fromCssColorString('#e7dbcc')
+const BUILDING_DARK = Color.fromCssColorString('#d1c3b2')
+const BUILDING_INDUS = Color.fromCssColorString('#d8d0c3')
+const BUILDING_TOWER = Color.fromCssColorString('#e9e2d8')
+const BUILDING_RESIDENTIAL = Color.fromCssColorString('#f4ecdf')
+
+const TREE_COUNT = 220
 
 interface Props {
   onBack: () => void
@@ -175,6 +197,84 @@ interface FloodedTriangle {
 
 function lerp(a: number, b: number, alpha: number) {
   return a + (b - a) * alpha
+}
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value))
+}
+
+function hashStringToUnit(value: string) {
+  let hash = 2166136261
+
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return (hash >>> 0) / 4294967295
+}
+
+function createSeededRandom(seed: number) {
+  let state = seed >>> 0
+
+  return () => {
+    state += 0x6d2b79f5
+    let t = state
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function createTreeSpriteDataUrl() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return ''
+
+  ctx.clearRect(0, 0, 128, 128)
+
+  const shadow = ctx.createRadialGradient(64, 102, 8, 64, 102, 34)
+  shadow.addColorStop(0, 'rgba(0,0,0,0.26)')
+  shadow.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = shadow
+  ctx.beginPath()
+  ctx.ellipse(64, 102, 30, 11, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  const trunk = ctx.createLinearGradient(60, 58, 68, 102)
+  trunk.addColorStop(0, '#7a5335')
+  trunk.addColorStop(1, '#4b311f')
+  ctx.fillStyle = trunk
+  ctx.fillRect(58, 66, 12, 32)
+
+  const crownA = ctx.createRadialGradient(45, 50, 8, 45, 50, 34)
+  crownA.addColorStop(0, '#b7db7a')
+  crownA.addColorStop(1, '#5f9445')
+  ctx.fillStyle = crownA
+  ctx.beginPath()
+  ctx.arc(45, 50, 25, 0, Math.PI * 2)
+  ctx.fill()
+
+  const crownB = ctx.createRadialGradient(78, 46, 8, 78, 46, 30)
+  crownB.addColorStop(0, '#b7db7a')
+  crownB.addColorStop(1, '#588a40')
+  ctx.fillStyle = crownB
+  ctx.beginPath()
+  ctx.arc(78, 46, 23, 0, Math.PI * 2)
+  ctx.fill()
+
+  const crownC = ctx.createRadialGradient(64, 34, 8, 64, 34, 28)
+  crownC.addColorStop(0, '#cde999')
+  crownC.addColorStop(1, '#67984c')
+  ctx.fillStyle = crownC
+  ctx.beginPath()
+  ctx.arc(64, 34, 24, 0, Math.PI * 2)
+  ctx.fill()
+
+  return canvas.toDataURL('image/png')
 }
 
 function getFramePairAtTime(frames: MeshFrame[], timeH: number): FramePair | null {
@@ -326,35 +426,96 @@ function computeWaveOffsetMeters(
   return swell * depthFactor
 }
 
-function createWaterAppearance() {
+function createWaterAppearance(timeS: number, rainAmount: number) {
   const appearance = new EllipsoidSurfaceAppearance({
     aboveGround: false,
     translucent: true,
     faceForward: true,
   })
 
-  appearance.material = Material.fromType('Water', {
-    baseWaterColor: new Color(0.06, 0.3, 0.55, 0.3),
-    blendColor: new Color(0.06, 0.3, 0.55, 0.1),
-    normalMap: buildModuleUrl('Assets/Textures/waterNormalsSmall.jpg'),
-    frequency: 220,
-    animationSpeed: 0.02,
-    amplitude: 0.02,
-    specularIntensity: 0.45,
+  appearance.material = new Material({
+    fabric: {
+      type: 'FloodRippleWater',
+      uniforms: {
+        baseWaterColor: new Color(0.06, 0.3, 0.55, 0.34),
+        blendColor: new Color(0.06, 0.3, 0.55, 0.14),
+        normalMap: buildModuleUrl('Assets/Textures/waterNormalsSmall.jpg'),
+        time: timeS,
+        rainAmount,
+        amplitude: 0.03,
+        specularIntensity: 0.55,
+        rippleScale: WATER_RIPPLE_SCALE,
+        rippleSpeed: WATER_RIPPLE_SPEED,
+        rippleIntensity: WATER_RIPPLE_INTENSITY,
+        rippleAlphaBoost: WATER_RIPPLE_ALPHA_BOOST,
+        rippleMaxRadius: WATER_RIPPLE_MAX_RADIUS,
+      },
+      source: `
+        float hash12(vec2 p) {
+          vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+
+        float rippleCell(vec2 uv, float t, float scale, float speed, float maxRadius) {
+          vec2 gridUv = uv * scale;
+          vec2 cell = floor(gridUv);
+          vec2 f = fract(gridUv) - 0.5;
+
+          float seed = hash12(cell);
+          vec2 center = vec2(
+            hash12(cell + vec2(1.73, 9.21)),
+            hash12(cell + vec2(6.12, 2.44))
+          ) - 0.5;
+
+          center *= 0.16;
+
+          float phase = fract(t * speed + seed);
+          float d = length(f - center);
+          float radius = phase * maxRadius;
+          float ring = exp(-140.0 * abs(d - radius));
+          float core = exp(-260.0 * d) * 0.06;
+
+          return (ring + core) * (1.0 - phase);
+        }
+
+        czm_material czm_getMaterial(czm_materialInput materialInput) {
+          czm_material material = czm_getDefaultMaterial(materialInput);
+
+          vec2 uv = materialInput.st;
+          float t = time;
+
+          vec2 flowUv1 = fract(uv * 18.0 + vec2(t * 0.018, t * 0.012));
+          vec2 flowUv2 = fract(uv * 24.0 + vec2(-t * 0.009, t * 0.014));
+
+          vec3 normalSample1 = texture(normalMap, flowUv1).rgb * 2.0 - 1.0;
+          vec3 normalSample2 = texture(normalMap, flowUv2).rgb * 2.0 - 1.0;
+
+          vec2 flow = (normalSample1.xy + normalSample2.xy) * amplitude * 2.2;
+
+          float rippleA = rippleCell(uv, t, rippleScale, rippleSpeed, rippleMaxRadius);
+          float rippleB = rippleCell(uv + vec2(0.173, 0.287), t * 1.11, rippleScale * 1.22, rippleSpeed * 0.91, rippleMaxRadius * 0.92);
+          float rippleC = rippleCell(uv + vec2(0.511, 0.041), t * 0.87, rippleScale * 0.82, rippleSpeed * 1.17, rippleMaxRadius * 0.88);
+
+          float ripple = clamp(rippleA + 0.7 * rippleB + 0.8 * rippleC, 0.0, 1.0) * rainAmount;
+
+          vec3 deepColor = mix(blendColor.rgb, baseWaterColor.rgb, 0.72);
+          vec3 rippleColor = mix(deepColor, vec3(0.94, 0.98, 1.0), ripple * rippleIntensity);
+          vec3 finalColor = rippleColor + vec3(ripple * 0.05);
+
+          material.diffuse = finalColor;
+          material.normal = normalize(vec3(flow + vec2(ripple * 0.22), 1.0));
+          material.specular = specularIntensity + ripple * 0.12;
+          material.shininess = 20.0 + ripple * 18.0;
+          material.alpha = clamp(baseWaterColor.a + ripple * rippleAlphaBoost, 0.0, 0.82);
+
+          return material;
+        }
+      `,
+    },
   })
 
   return appearance
-}
-
-function createRainStreaks(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    left: Math.random() * 100,
-    duration: 0.45 + Math.random() * 0.55,
-    delay: Math.random() * 1.2,
-    opacity: 0.2 + Math.random() * 0.45,
-    scale: 0.6 + Math.random() * 1.4,
-  }))
 }
 
 function pointSign(
@@ -480,6 +641,8 @@ export default function MuncieFloodView({ onBack }: Props) {
   const visibleBuildingFeaturesRef = useRef<Map<string, Cesium3DTileFeature>>(new Map())
   const currentFloodedTrianglesRef = useRef<FloodedTriangle[]>([])
   const waterPrimitiveRef = useRef<Primitive | null>(null)
+  const rainStageRef = useRef<PostProcessStage | null>(null)
+  const treeBillboardsRef = useRef<BillboardCollection | null>(null)
 
   const loopRef = useRef<number | null>(null)
   const lastFrameTsRef = useRef<number | null>(null)
@@ -508,7 +671,9 @@ export default function MuncieFloodView({ onBack }: Props) {
   const [autoVerticalOffsetM, setAutoVerticalOffsetM] = useState(0)
   const [userVerticalOffsetM, setUserVerticalOffsetM] = useState(0)
 
-  const rainDrops = useMemo(() => createRainStreaks(180), [])
+  const [panelCollapsed, setPanelCollapsed] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   const effectiveVerticalOffsetM = autoVerticalOffsetM + userVerticalOffsetM
 
   const currentPair = useMemo(() => {
@@ -539,6 +704,9 @@ export default function MuncieFloodView({ onBack }: Props) {
 
     return bestIndex
   }, [meshFrames])
+
+  const totalFrames = meshFrames?.frames.length ?? 0
+  const progressPercent = totalFrames > 1 ? (currentFrame / (totalFrames - 1)) * 100 : 0
 
   useEffect(() => {
     currentTimeHRef.current = currentTimeH
@@ -572,6 +740,59 @@ export default function MuncieFloodView({ onBack }: Props) {
     }
 
     return null
+  }
+
+  const getBaseBuildingColor = (feature: Cesium3DTileFeature) => {
+    const key =
+      getFeatureKey(feature) ||
+      String(feature.getProperty('name') || feature.getProperty('building') || '')
+
+    const rawHeight = Number(
+      feature.getProperty('cesium#estimatedHeight') ||
+      feature.getProperty('height') ||
+      12
+    )
+
+    const buildingType = String(feature.getProperty('building') || '').toLowerCase()
+    const jitter = hashStringToUnit(key)
+    const heightMix = clamp01(Number.isFinite(rawHeight) ? rawHeight / 80 : 0.2)
+
+    let base = BUILDING_LIGHT
+
+    if (
+      buildingType.includes('industrial') ||
+      buildingType.includes('warehouse') ||
+      buildingType.includes('commercial') ||
+      buildingType.includes('retail') ||
+      buildingType.includes('supermarket')
+    ) {
+      base = BUILDING_INDUS
+    } else if (
+      buildingType.includes('apartments') ||
+      buildingType.includes('residential') ||
+      buildingType.includes('house') ||
+      buildingType.includes('detached') ||
+      buildingType.includes('terrace')
+    ) {
+      base = BUILDING_RESIDENTIAL
+    } else if (
+      buildingType.includes('office') ||
+      buildingType.includes('hotel') ||
+      rawHeight > 45
+    ) {
+      base = BUILDING_TOWER
+    } else {
+      base = BUILDING_MID
+    }
+
+    const darkBlend = 0.12 + heightMix * 0.28 + jitter * 0.1
+    const lightBlend = 0.1 + (1 - heightMix) * 0.15
+
+    const temp = Color.lerp(base, BUILDING_DARK, darkBlend, new Color())
+    const out = Color.lerp(temp, BUILDING_LIGHT, lightBlend * 0.35, new Color())
+    out.alpha = 1
+
+    return out
   }
 
   const isFeatureFlooded = (feature: Cesium3DTileFeature) => {
@@ -644,7 +865,21 @@ export default function MuncieFloodView({ onBack }: Props) {
 
     feature.color = isFeatureFlooded(feature)
       ? Color.clone(FLOODED_BUILDING_COLOR, new Color())
-      : Color.WHITE
+      : getBaseBuildingColor(feature)
+  }
+
+  const refreshSelectedBuildingFloodState = () => {
+    if (!selectedBuilding.current) return
+
+    const flooded = isFeatureFlooded(selectedBuilding.current)
+
+    setBuildingInfo(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        flooded,
+      }
+    })
   }
 
   const updateVisibleBuildingColors = () => {
@@ -652,6 +887,7 @@ export default function MuncieFloodView({ onBack }: Props) {
       applyColorToFeature(feature)
     })
 
+    refreshSelectedBuildingFloodState()
     requestRender()
   }
 
@@ -677,6 +913,341 @@ export default function MuncieFloodView({ onBack }: Props) {
     v.scene.primitives.remove(primitive)
     waterPrimitiveRef.current = null
     requestRender()
+  }
+
+  const clearRainStage = () => {
+    const v = viewer.current
+    const stage = rainStageRef.current
+
+    if (!v || !stage) return
+
+    stage.enabled = false
+    v.scene.postProcessStages.remove(stage)
+
+    if (!stage.isDestroyed()) {
+      stage.destroy()
+    }
+
+    rainStageRef.current = null
+    requestRender()
+  }
+
+  const clearTreeBillboards = () => {
+    const v = viewer.current
+    const trees = treeBillboardsRef.current
+
+    if (!v || !trees) return
+
+    v.scene.primitives.remove(trees)
+
+    if (!trees.isDestroyed()) {
+      trees.destroy()
+    }
+
+    treeBillboardsRef.current = null
+    requestRender()
+  }
+
+  const setRainEnabled = (enabled: boolean) => {
+    const stage = rainStageRef.current
+    if (!stage) return
+    stage.enabled = enabled
+    requestRender()
+  }
+
+  const createDecorativeTrees = async () => {
+    const v = viewer.current
+    if (!v || !metadata) return
+
+    clearTreeBillboards()
+
+    const sprite = createTreeSpriteDataUrl()
+    const rng = createSeededRandom(183745)
+    const points: Cartographic[] = []
+
+    const lonPad = (metadata.bbox.lon_max - metadata.bbox.lon_min) * 0.06
+    const latPad = (metadata.bbox.lat_max - metadata.bbox.lat_min) * 0.06
+
+    for (let i = 0; i < TREE_COUNT; i += 1) {
+      const lon = lerp(
+        metadata.bbox.lon_min + lonPad,
+        metadata.bbox.lon_max - lonPad,
+        rng()
+      )
+      const lat = lerp(
+        metadata.bbox.lat_min + latPad,
+        metadata.bbox.lat_max - latPad,
+        rng()
+      )
+
+      points.push(Cartographic.fromDegrees(lon, lat))
+    }
+
+    const sampled = await sampleTerrainMostDetailed(v.terrainProvider, points)
+    const trees = new BillboardCollection({
+      scene: v.scene,
+    })
+
+    const greenA = Color.fromCssColorString('#6c9547')
+    const greenB = Color.fromCssColorString('#88ad55')
+    const greenC = Color.fromCssColorString('#5f8543')
+
+    for (let i = 0; i < sampled.length; i += 1) {
+      const carto = sampled[i]
+      if (!Number.isFinite(carto.height)) continue
+
+      const colorMix = rng()
+      const baseTint = Color.lerp(
+        colorMix < 0.5 ? greenA : greenB,
+        greenC,
+        rng() * 0.45,
+        new Color()
+      )
+      baseTint.alpha = 0.98
+
+      const height = 28 + rng() * 22
+      const width = height * (0.58 + rng() * 0.18)
+
+      trees.add({
+        position: Cartesian3.fromRadians(
+          carto.longitude,
+          carto.latitude,
+          carto.height + 0.05
+        ),
+        image: sprite,
+        width,
+        height,
+        color: baseTint,
+        verticalOrigin: VerticalOrigin.BOTTOM,
+        scaleByDistance: new NearFarScalar(250, 1.15, 8000, 0.32),
+        translucencyByDistance: new NearFarScalar(4000, 1.0, 16000, 0.18),
+      })
+    }
+
+    v.scene.primitives.add(trees)
+    treeBillboardsRef.current = trees
+    requestRender()
+  }
+
+  const createRainStage = (
+    centerLon: number,
+    centerLat: number,
+    effectHei = 0,
+    effectDxRad = 0,
+    effectDyRad = 0
+  ) => {
+    const v = viewer.current
+    if (!v || rainStageRef.current) return
+
+    const effectCenter = Cartesian3.fromDegrees(centerLon, centerLat, effectHei)
+    const effectFrame = Transforms.eastNorthUpToFixedFrame(effectCenter)
+    const inverseEffectFrame = Matrix4.inverseTransformation(effectFrame, new Matrix4())
+
+    const computeRainState = () => {
+      const cam = v.camera
+
+      const rightLocal = Matrix4.multiplyByPointAsVector(
+        inverseEffectFrame,
+        cam.right,
+        new Cartesian3()
+      )
+      const upLocal = Matrix4.multiplyByPointAsVector(
+        inverseEffectFrame,
+        cam.up,
+        new Cartesian3()
+      )
+      const dirLocal = Matrix4.multiplyByPointAsVector(
+        inverseEffectFrame,
+        cam.direction,
+        new Cartesian3()
+      )
+      const posLocal = Matrix4.multiplyByPoint(
+        inverseEffectFrame,
+        cam.position,
+        new Cartesian3()
+      )
+
+      Cartesian3.normalize(rightLocal, rightLocal)
+      Cartesian3.normalize(upLocal, upLocal)
+      Cartesian3.normalize(dirLocal, dirLocal)
+
+      const carto = Cartographic.fromCartesian(cam.position)
+      const height = Number.isFinite(carto.height) ? carto.height : 0
+
+      return {
+        height,
+        rightLocal,
+        upLocal,
+        dirLocal,
+        posLocal,
+      }
+    }
+
+    const fragmentShader = `
+      uniform sampler2D colorTexture;
+      in vec2 v_textureCoordinates;
+
+      uniform vec4 rainPars0;
+      uniform vec4 rainPars1;
+      uniform vec4 rainPars2;
+      uniform vec4 rainPars3;
+
+      mat2 Rot(float a) {
+        float s = sin(a);
+        float c = cos(a);
+        return mat2(c, -s, s, c);
+      }
+
+      float hash11(float p) {
+        p = fract(p * 0.1031);
+        p *= p + 33.33;
+        p *= p + p;
+        return fract(p);
+      }
+
+      float hash12(vec2 p) {
+        vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+        p3 += dot(p3, p3.yzx + 33.33);
+        return fract((p3.x + p3.y) * p3.z);
+      }
+
+      float sdSphere(vec3 p, float s) {
+        return length(p) - s;
+      }
+
+      vec3 repeat3(vec3 p, vec3 c) {
+        return mod(p, c) - 0.5 * c;
+      }
+
+      vec3 modularsnap(vec3 p, float size) {
+        return floor(p * size);
+      }
+
+      float rainsdf(vec3 p) {
+        float rainsize = 0.125;
+        float snapsize = 0.75;
+        float iTime = czm_frameNumber * 0.01;
+
+        p.xy *= Rot(rainPars3.z);
+        p.zy *= Rot(rainPars3.w);
+
+        vec3 m = modularsnap(p, snapsize);
+
+        float x = 1.0 - 2.0 * hash12((m.xz + 0.5) * 1.31457453);
+        float z = 1.0 - 2.0 * hash12((m.xz + 0.2) * 1.41569562);
+        float yrandom = hash12(m.xz * 1.4234123);
+        float rainspeed = 2.5 + 0.3 * hash11(yrandom);
+
+        vec3 randomoffset = vec3(
+          x * snapsize * 0.25,
+          -iTime * rainspeed + yrandom,
+          z * snapsize * 0.25
+        );
+
+        p = repeat3(p - randomoffset, vec3(snapsize));
+        p.y *= 0.015;
+
+        return sdSphere(p, rainsize * 0.0025);
+      }
+
+      vec4 raymarch(vec3 o, vec3 d, out float dis, vec4 origincol) {
+        vec3 color = vec3(0.0);
+        float t = 0.5;
+        float maxdist = 32000.0;
+        float fade = 0.0;
+
+        for (int i = 0; i < 32; i++) {
+          vec3 p = o + d * t;
+          float plane = p.z - rainPars3.y;
+          float r = rainsdf(p.xzy);
+          r = min(r, plane);
+
+          float dist = r;
+          t += dist;
+
+          if (dist < 0.001 || t > maxdist) {
+            if (dist < 0.001 && r < plane) {
+              color += mix(origincol.rgb, vec3(1.0), 0.4);
+              fade = 1.0;
+            }
+            break;
+          }
+        }
+
+        dis = t;
+        return vec4(color, fade);
+      }
+
+      void main() {
+        vec4 baseColor = texture(colorTexture, v_textureCoordinates);
+
+        float height = rainPars0.x;
+        if (height > 11000.0) {
+          out_FragColor = baseColor;
+          return;
+        }
+
+        vec3 rgt = vec3(rainPars0.y, rainPars0.z, rainPars0.w);
+        vec3 up = vec3(rainPars1.x, rainPars1.y, rainPars1.z);
+        vec3 dir = vec3(rainPars1.w, rainPars2.x, rainPars2.y);
+        vec3 ro = vec3(rainPars2.z, rainPars2.w, rainPars3.x);
+
+        vec2 uv = (gl_FragCoord.xy - 0.5 * czm_viewport.zw) / czm_viewport.w;
+        vec3 rd = normalize(dir + uv.x * rgt + uv.y * up);
+
+        float dis = 0.0;
+        vec4 raincolor = raymarch(ro, rd, dis, baseColor);
+
+        out_FragColor = mix(baseColor, raincolor, raincolor.a);
+      }
+    `
+
+    const stage = new PostProcessStage({
+      name: 'muncie-rain-shader',
+      fragmentShader,
+      uniforms: {
+        rainPars0: () => {
+          const s = computeRainState()
+          return new Cartesian4(
+            s.height,
+            s.rightLocal.x,
+            s.rightLocal.y,
+            s.rightLocal.z
+          )
+        },
+        rainPars1: () => {
+          const s = computeRainState()
+          return new Cartesian4(
+            s.upLocal.x,
+            s.upLocal.y,
+            s.upLocal.z,
+            s.dirLocal.x
+          )
+        },
+        rainPars2: () => {
+          const s = computeRainState()
+          return new Cartesian4(
+            s.dirLocal.y,
+            s.dirLocal.z,
+            s.posLocal.x,
+            s.posLocal.y
+          )
+        },
+        rainPars3: () => {
+          const s = computeRainState()
+          return new Cartesian4(
+            s.posLocal.z,
+            effectHei,
+            effectDxRad,
+            effectDyRad
+          )
+        },
+      },
+    })
+
+    stage.enabled = false
+    v.scene.postProcessStages.add(stage)
+    rainStageRef.current = stage
   }
 
   const loadData = async () => {
@@ -928,7 +1499,10 @@ export default function MuncieFloodView({ onBack }: Props) {
       geometryInstances: new GeometryInstance({
         geometry,
       }),
-      appearance: createWaterAppearance(),
+      appearance: createWaterAppearance(
+        visualWaveTimeS,
+        isAnimatingRef.current ? 1.0 : 0.0
+      ),
       asynchronous: false,
       allowPicking: false,
       show: true,
@@ -940,6 +1514,7 @@ export default function MuncieFloodView({ onBack }: Props) {
   }
 
   const stopAnimation = () => {
+    setRainEnabled(false)
     isAnimatingRef.current = false
     setIsAnimating(false)
   }
@@ -956,6 +1531,7 @@ export default function MuncieFloodView({ onBack }: Props) {
       setCurrentTimeH(startT)
     }
 
+    setRainEnabled(true)
     isAnimatingRef.current = true
     setIsAnimating(true)
   }
@@ -1045,16 +1621,18 @@ export default function MuncieFloodView({ onBack }: Props) {
         v.shadows = true
         v.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5)
 
+        createRainStage(metadata.center.lon, metadata.center.lat, 0, 0, 0)
+
         try {
           const buildings = await createOsmBuildingsAsync({
             style: new Cesium3DTileStyle({
-              color: "mix(color('#d9d4cc'), color('#f3eee8'), 0.35)",
+              color: "color('#ffffff', 1.0)",
             }),
           })
 
           buildingsTilesetRef.current = buildings
           buildings.shadows = ShadowMode.ENABLED
-          buildings.maximumScreenSpaceError = 8
+          buildings.maximumScreenSpaceError = 6
 
           buildings.tileVisible.addEventListener((tile: any) => {
             const content = tile?.content
@@ -1090,6 +1668,7 @@ export default function MuncieFloodView({ onBack }: Props) {
           })
 
           v.scene.primitives.add(buildings)
+          await createDecorativeTrees()
 
           handler.current = new ScreenSpaceEventHandler(v.scene.canvas)
 
@@ -1172,10 +1751,14 @@ export default function MuncieFloodView({ onBack }: Props) {
       }
 
       handler.current?.destroy()
+      handler.current = null
+
       visibleBuildingFeaturesRef.current.clear()
       currentFloodedTrianglesRef.current = []
       resetSelectedBuilding()
       clearWaterPrimitive()
+      clearRainStage()
+      clearTreeBillboards()
 
       if (viewer.current) {
         viewer.current.destroy()
@@ -1227,6 +1810,7 @@ export default function MuncieFloodView({ onBack }: Props) {
         currentTimeHRef.current = Math.min(nextTime, endT)
 
         if (currentTimeHRef.current >= endT) {
+          setRainEnabled(false)
           isAnimatingRef.current = false
           setIsAnimating(false)
         }
@@ -1272,24 +1856,7 @@ export default function MuncieFloodView({ onBack }: Props) {
     <>
       <div ref={cesiumContainer} className="map3d-container" />
 
-      <div className={`rain-overlay ${isAnimating ? 'active' : ''}`}>
-        <div className="rain-dim" />
-        {rainDrops.map(drop => (
-          <span
-            key={drop.id}
-            className="rain-drop"
-            style={{
-              left: `${drop.left}%`,
-              animationDuration: `${drop.duration}s`,
-              animationDelay: `${drop.delay}s`,
-              opacity: drop.opacity,
-              transform: `scaleY(${drop.scale})`,
-            }}
-          />
-        ))}
-      </div>
-
-      <button className="scene-back-btn" onClick={onBack}>
+      <button className="scene-back-btn" onClick={onBack} type="button">
         ← Retour
       </button>
 
@@ -1297,137 +1864,184 @@ export default function MuncieFloodView({ onBack }: Props) {
         <div className="map3d-loading">Chargement de l’eau animée...</div>
       )}
 
-      <div className="simulation-panel">
-        <div className="simulation-title">Simulation submersion</div>
-        <div className="simulation-subtitle">
-          {dataReady ? '✅ Mesh continu chargé' : '⏳ Chargement données...'}
-        </div>
-
-        <div className="sim-slider-row">
-          <span className="sim-label">Frame</span>
-          <input
-            type="range"
-            min={0}
-            max={Math.max((meshFrames?.frames.length ?? 1) - 1, 0)}
-            step={1}
-            value={currentFrame}
-            onChange={e => jumpToFrame(parseInt(e.target.value, 10))}
-            className="sim-slider"
-          />
-          <span className="sim-value" style={{ color: activeColor }}>
-            {currentFrame + 1}
-          </span>
-        </div>
-
-        <div className="sim-scenarios">
-          <button
-            className={`sim-btn ${currentFrame === 0 ? 'active' : ''}`}
-            onClick={() => jumpToFrame(0)}
-          >
-            Début
-          </button>
-          <button
-            className="sim-btn"
-            onClick={() => jumpToFrame(Math.floor(((meshFrames?.frames.length ?? 1) - 1) * 0.35))}
-          >
-            Montée
-          </button>
-          <button
-            className={`sim-btn ${currentFrame === peakFrameIndex ? 'active' : ''}`}
-            onClick={() => jumpToFrame(peakFrameIndex)}
-          >
-            Pic
-          </button>
-          <button
-            className="sim-btn"
-            onClick={() => jumpToFrame(Math.max((meshFrames?.frames.length ?? 1) - 1, 0))}
-          >
-            Fin
-          </button>
-        </div>
-
-        <button
-          className={`sim-animate-btn ${isAnimating ? 'stop' : ''}`}
-          onClick={() => {
-            if (isAnimating) {
-              stopAnimation()
-            } else {
-              startAnimation()
-            }
-          }}
-          disabled={!meshFrames}
-        >
-          {!meshFrames ? '⏳ Chargement...' : isAnimating ? '⏹ Arrêter' : '▶ Lancer simulation'}
-        </button>
-
-        <div className="sim-slider-row" style={{ marginTop: 10 }}>
-          <span className="sim-label">Z offset</span>
-          <input
-            type="range"
-            min={-20}
-            max={20}
-            step={0.1}
-            value={userVerticalOffsetM}
-            onChange={e => setUserVerticalOffsetM(parseFloat(e.target.value))}
-            className="sim-slider"
-          />
-          <span className="sim-value" style={{ color: '#9ecbff' }}>
-            {userVerticalOffsetM.toFixed(1)} m
-          </span>
-        </div>
-
-        <div className="sim-slider-row" style={{ marginTop: 10 }}>
-          <span className="sim-label">Speed</span>
-          <input
-            type="range"
-            min={1}
-            max={3600}
-            step={1}
-            value={playbackSpeed}
-            onChange={e => setPlaybackSpeed(parseFloat(e.target.value))}
-            className="sim-slider"
-          />
-          <span className="sim-value" style={{ color: '#9ecbff' }}>
-            {playbackSpeed.toFixed(0)}x
-          </span>
-        </div>
-
-        <div className="sim-frame-info">
-          Auto offset: {autoVerticalOffsetM.toFixed(2)} m
-        </div>
-
-        <div className="sim-frame-info">
-          Effective offset: {effectiveVerticalOffsetM.toFixed(2)} m
-        </div>
-
-        <div className="sim-frame-info">
-          Simulation time: {currentTimeH.toFixed(3)} h
-        </div>
-
-        <div className="sim-frame-info">
-          Wave time: {waveTimeS.toFixed(1)} s
-        </div>
-
-        {currentPair && (
-          <div className="sim-frame-info">
-            Interp: F{currentPair.indexA + 1} → F{currentPair.indexB + 1} — α={currentPair.alpha.toFixed(2)}
+      <div className={`sim-dock ${panelCollapsed ? 'collapsed' : ''}`}>
+        <div className="sim-dock-header">
+          <div className="sim-dock-headings">
+            <span className="sim-dock-kicker">Simulation 3D</span>
+            <div className="sim-dock-title">Submersion urbaine</div>
+            <div className="sim-dock-status">
+              {dataReady ? 'Mesh prêt' : 'Chargement des données'}
+            </div>
           </div>
-        )}
 
-        {topology && (
-          <div className="sim-frame-info">
-            Mesh: {topology.vertex_count} vertices — {topology.triangle_count} triangles
+          <div className="sim-dock-header-actions">
+            <button
+              className={`sim-ghost-btn ${showAdvanced ? 'active' : ''}`}
+              onClick={() => setShowAdvanced(v => !v)}
+              type="button"
+            >
+              Réglages
+            </button>
+
+            <button
+              className="sim-icon-btn"
+              onClick={() => setPanelCollapsed(v => !v)}
+              type="button"
+              aria-label={panelCollapsed ? 'Déployer le panneau' : 'Réduire le panneau'}
+            >
+              {panelCollapsed ? '+' : '−'}
+            </button>
           </div>
-        )}
+        </div>
 
-        {currentPair && (
-          <div className="sim-info" style={{ borderColor: activeColor }}>
-            <span style={{ color: activeColor, fontWeight: 600 }}>
-              {interpolatedFloodedCells} cellules inondées
-            </span>
-            <span style={{ color: '#888', fontSize: 11 }}>
-              {' '}— {currentPair.frameA.ts}
-            </span>
+        {panelCollapsed ? (
+          <div className="sim-dock-mini">
+            <button
+              className={`sim-primary-btn compact ${isAnimating ? 'stop' : ''}`}
+              onClick={() => {
+                if (isAnimating) {
+                  stopAnimation()
+                } else {
+                  startAnimation()
+                }
+              }}
+              disabled={!meshFrames}
+              type="button"
+            >
+              {!meshFrames ? '…' : isAnimating ? 'Pause' : 'Lecture'}
+            </button>
+
+            <div className="sim-mini-stat">
+              <strong style={{ color: activeColor }}>
+                {interpolatedFloodedCells.toLocaleString('fr-FR')}
+              </strong>
+              <span>cellules</span>
+            </div>
+          </div>
+        ) : (
+          <div className="sim-dock-body">
+            <div className="sim-hero-card" style={{ borderColor: activeColor }}>
+              <div className="sim-hero-top">
+                <span className="sim-hero-label">Cellules inondées</span>
+                <span className="sim-hero-badge">Frame {currentFrame + 1}</span>
+              </div>
+
+              <div className="sim-hero-value" style={{ color: activeColor }}>
+                {interpolatedFloodedCells.toLocaleString('fr-FR')}
+              </div>
+
+              <div className="sim-hero-date">
+                {currentPair ? currentPair.frameA.ts : '—'}
+              </div>
+            </div>
+
+            <div className="sim-main-actions">
+              <button
+                className={`sim-primary-btn ${isAnimating ? 'stop' : ''}`}
+                onClick={() => {
+                  if (isAnimating) {
+                    stopAnimation()
+                  } else {
+                    startAnimation()
+                  }
+                }}
+                disabled={!meshFrames}
+                type="button"
+              >
+                {!meshFrames ? 'Chargement…' : isAnimating ? 'Pause simulation' : 'Lancer simulation'}
+              </button>
+            </div>
+
+            <div className="sim-timeline">
+              <div className="sim-timeline-head">
+                <span>{currentFrame + 1} / {totalFrames || 0}</span>
+                <span>{progressPercent.toFixed(0)}%</span>
+              </div>
+
+              <input
+                type="range"
+                min={0}
+                max={Math.max(totalFrames - 1, 0)}
+                step={1}
+                value={currentFrame}
+                onChange={e => jumpToFrame(parseInt(e.target.value, 10))}
+                className="sim-range"
+              />
+            </div>
+
+            <div className="sim-jumps">
+              <button className="sim-chip" onClick={() => jumpToFrame(0)} type="button">
+                Début
+              </button>
+              <button
+                className="sim-chip"
+                onClick={() => jumpToFrame(Math.floor(Math.max(totalFrames - 1, 0) * 0.35))}
+                type="button"
+              >
+                Montée
+              </button>
+              <button
+                className={`sim-chip ${currentFrame === peakFrameIndex ? 'active' : ''}`}
+                onClick={() => jumpToFrame(peakFrameIndex)}
+                type="button"
+              >
+                Pic
+              </button>
+              <button
+                className="sim-chip"
+                onClick={() => jumpToFrame(Math.max(totalFrames - 1, 0))}
+                type="button"
+              >
+                Fin
+              </button>
+            </div>
+
+            {showAdvanced && (
+              <div className="sim-advanced">
+                <div className="sim-control">
+                  <div className="sim-control-head">
+                    <span className="sim-control-label">Vitesse</span>
+                    <span className="sim-control-value">{playbackSpeed.toFixed(0)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3600}
+                    step={1}
+                    value={playbackSpeed}
+                    onChange={e => setPlaybackSpeed(parseFloat(e.target.value))}
+                    className="sim-range"
+                  />
+                </div>
+
+                <div className="sim-control">
+                  <div className="sim-control-head">
+                    <span className="sim-control-label">Offset vertical</span>
+                    <span className="sim-control-value">{userVerticalOffsetM.toFixed(1)} m</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-20}
+                    max={20}
+                    step={0.1}
+                    value={userVerticalOffsetM}
+                    onChange={e => setUserVerticalOffsetM(parseFloat(e.target.value))}
+                    className="sim-range"
+                  />
+                </div>
+
+                <div className="sim-note-grid">
+                  <div className="sim-note">
+                    <span>Auto</span>
+                    <strong>{autoVerticalOffsetM.toFixed(2)} m</strong>
+                  </div>
+                  <div className="sim-note">
+                    <span>Effectif</span>
+                    <strong>{effectiveVerticalOffsetM.toFixed(2)} m</strong>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1442,6 +2056,7 @@ export default function MuncieFloodView({ onBack }: Props) {
                 resetSelectedBuilding()
                 setBuildingInfo(null)
               }}
+              type="button"
             >
               ✕
             </button>
@@ -1464,7 +2079,7 @@ export default function MuncieFloodView({ onBack }: Props) {
               <span className="building-label">Inondé</span>
               <span
                 className="building-value"
-                style={{ color: buildingInfo.flooded ? '#ff3b30' : '#7bd88f' }}
+                style={{ color: buildingInfo.flooded ? '#c97964' : '#809c79' }}
               >
                 {buildingInfo.flooded ? 'Oui' : 'Non'}
               </span>
