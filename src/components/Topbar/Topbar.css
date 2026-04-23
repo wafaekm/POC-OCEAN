@@ -1,0 +1,160 @@
+.topbar {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr var(--rpanel-w);
+  align-items: center;
+  height: var(--topbar-h);
+  padding: 0 20px;
+  background: rgba(13, 17, 18, 0.84);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.brand-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.atos-logo {
+  width: 52px;
+  height: 22px;
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border-default);
+  flex-shrink: 0;
+}
+
+.brand-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brand-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1;
+}
+
+.topbar-nav {
+  position: static;
+  left: auto;
+  transform: none;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  justify-self: center;
+}
+
+.nav-tab {
+  position: relative;
+  padding: 19px 0 17px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.nav-tab:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+.nav-tab.active {
+  color: var(--text-primary);
+}
+
+.tab-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: auto;
+  height: 2px;
+  transform: none;
+  background: var(--atos-blue);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: none;
+  animation: pulse-dot 2.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.status-text {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+.status-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-default);
+}
+
+.status-zone {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1200px) {
+  .topbar {
+    grid-template-columns: 1fr auto;
+    gap: 18px;
+  }
+
+  .topbar-brand {
+    min-width: 0;
+  }
+
+  .topbar-nav {
+    display: none;
+  }
+}

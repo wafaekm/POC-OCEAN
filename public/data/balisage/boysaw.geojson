@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "boysaw",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-15,
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "inspireid": "FR000013922200001", "posacc": null, "objnam": null, "nobjnm": null, "inform": null, "ninfom": null, "numald": "1700511", "persta": null, "perend": null, "boyshp": 5, "colour": "3,1", "colpat": "2", "status": null, "aisatn": "", "daymar": "", "topmar": "FR000013922300001", "fogsig": "", "radsta": "", "rtpbcn": "", "rdosta": "", "sistat": "", "sistaw": "", "lights": "" }, "geometry": { "type": "Point", "coordinates": [ -1.1669333, 46.27975 ] } },
+{ "type": "Feature", "properties": { "id": 7, "inspireid": "FR000004743400001", "posacc": null, "objnam": "ATT de l'Aiguillon", "nobjnm": null, "inform": null, "ninfom": null, "numald": "8500181", "persta": null, "perend": null, "boyshp": 4, "colour": "3,1", "colpat": "2", "status": null, "aisatn": "", "daymar": "", "topmar": "FR000004743800001", "fogsig": "", "radsta": "", "rtpbcn": "", "rdosta": "", "sistat": "", "sistaw": "", "lights": "FR000004743700001" }, "geometry": { "type": "Point", "coordinates": [ -1.19, 46.2575 ] } }
+]
+}

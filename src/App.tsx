@@ -1,155 +1,248 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import './styles/global.css'
+
+import Topbar, { type ViewId } from './components/Topbar/Topbar'
+import Sidebar from './components/Sidebar/Sidebar'
+import RightPanel from './components/RightPanel/RightPanel'
+import ChatPanel from './components/Chat/ChatPanel'
+
 import Map2D from './components/Map2D/Map2D'
 import Map3D from './components/Map3D/Map3D'
-import ViewToggle from './components/ViewToggle/ViewToggle'
-import LayerControl from './components/LayerControl/LayerControl'
-import Legend from './components/Legend/Legend'
-import ChatPanel from './components/Chat/ChatPanel'
+import LaRochelleWaveView from './components/LaRochelleWaveView'
+import LaRochelleLidarTilesView from './components/LaRochelleLidarTilesView'
+import LaRochelleAisLiveView from './components/LaRochelleAisLiveView'
+
 import type { LayerId } from './types/layers.types'
-import './App.css'
 
-type View = '2d' | '3d'
+type RightMode = 'analysis' | 'assistant'
 
-const PANEL_MIN = 320
-const PANEL_MAX = 700
-const PANEL_DEFAULT = 400
+const DEFAULT_LAYERS: Record<LayerId, boolean> = {
+  'ppri-fill': true,
+  'ppri-zones': true,
+  'critical-networks-layer': true,
+  'flood-tiles-layer': false,
+}
 
 export default function App() {
-  const [view, setView]         = useState<View>('2d')
-  const [chatOpen, setChatOpen] = useState(false)
-  const [panelW, setPanelW]     = useState(PANEL_DEFAULT)
-  const [layers, setLayers]     = useState<Record<LayerId, boolean>>({
-    'ppri-zones': true,
-    'ppri-fill': true,
-    'critical-networks-layer': true,
-    'flood-tiles-layer': true,
-  })
+  const [activeView, setActiveView] = useState<ViewId>('map2d')
+  const [layers, setLayers] = useState(DEFAULT_LAYERS)
 
-  const dragging  = useRef(false)
-  const startX    = useRef(0)
-  const startW    = useRef(0)
+  const [bdtopoActive, setBdtopoActive] = useState(false)
+  const [bdtopoCount, setBdtopoCount] = useState(0)
 
-  const toggleLayer = (id: LayerId) =>
+  const [scenarios, setScenarios] = useState<any[]>([])
+  const [activeScenario, setActiveScenario] = useState<string | null>(null)
+  const [impact, setImpact] = useState<any | null>(null)
+
+  const [ww3Active, setWw3Active] = useState(false)
+  const [ww3Loading, setWw3Loading] = useState(false)
+  const [ww3Frame, setWw3Frame] = useState(0)
+  const [ww3Var, setWw3Var] = useState<any>('hs')
+  const [ww3Playing, setWw3Playing] = useState(false)
+  const [ww3Arrows, setWw3Arrows] = useState(true)
+  const [ww3FrameData, setWw3FrameData] = useState<any | null>(null)
+  const [nFrames, setNFrames] = useState(0)
+
+  const [map2dRef, setMap2dRef] = useState<any>(null)
+  const [rightMode, setRightMode] = useState<RightMode>('analysis')
+
+  const handleLayerToggle = useCallback((id: LayerId) => {
     setLayers(prev => ({ ...prev, [id]: !prev[id] }))
-
-  // Notifie MapLibre du changement de taille après transition
-  useEffect(() => {
-    const t = setTimeout(() => window.dispatchEvent(new Event('resize')), 320)
-    return () => clearTimeout(t)
-  }, [chatOpen, panelW])
-
-  // ── Resize handle ──────────────────────────────────────────
-  const onDragMove = useCallback((e: MouseEvent) => {
-    if (!dragging.current) return
-    const delta = startX.current - e.clientX
-    setPanelW(Math.max(PANEL_MIN, Math.min(PANEL_MAX, startW.current + delta)))
   }, [])
 
-  const onDragEnd = useCallback(() => {
-    dragging.current = false
-    document.removeEventListener('mousemove', onDragMove)
-    document.removeEventListener('mouseup', onDragEnd)
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-  }, [onDragMove])
+  const handleViewChange = useCallback((id: ViewId) => {
+    setActiveView(id)
+  }, [])
 
-  const onDragStart = useCallback((e: React.MouseEvent) => {
-    dragging.current = true
-    startX.current   = e.clientX
-    startW.current   = panelW
-    document.addEventListener('mousemove', onDragMove)
-    document.addEventListener('mouseup', onDragEnd)
-    document.body.style.cursor     = 'col-resize'
-    document.body.style.userSelect = 'none'
-  }, [panelW, onDragMove, onDragEnd])
+  const handleBdtopoToggle = useCallback(() => {
+    map2dRef?.toggleBdtopo?.()
+  }, [map2dRef])
+
+  const handleLoadScenario = useCallback((id: string) => {
+    map2dRef?.loadScenario?.(id)
+  }, [map2dRef])
+
+  const handleClearScenario = useCallback(() => {
+    map2dRef?.clearScenario?.()
+  }, [map2dRef])
+
+  const handleToggleWW3 = useCallback(() => {
+    map2dRef?.toggleWW3?.()
+  }, [map2dRef])
+
+  const handleChangeWW3Var = useCallback((k: any) => {
+    map2dRef?.changeWW3Var?.(k)
+  }, [map2dRef])
+
+  const handleToggleWW3Play = useCallback(() => {
+    map2dRef?.toggleWW3Play?.()
+  }, [map2dRef])
+
+  const handleStepWW3 = useCallback((delta: number) => {
+    map2dRef?.stepWW3?.(delta)
+  }, [map2dRef])
+
+  const handleToggleWW3Arrows = useCallback(() => {
+    map2dRef?.toggleWW3Arrows?.()
+  }, [map2dRef])
+
+  const map2dCallbacks = {
+    onScenariosLoaded: setScenarios,
+    onScenarioChange: setActiveScenario,
+    onImpactChange: setImpact,
+    onBdtopoChange: (active: boolean, count: number) => {
+      setBdtopoActive(active)
+      setBdtopoCount(count)
+    },
+    onWW3StateChange: (state: {
+      active: boolean
+      loading: boolean
+      frame: number
+      var: any
+      playing: boolean
+      arrows: boolean
+      frameData: any
+      nFrames: number
+    }) => {
+      setWw3Active(state.active)
+      setWw3Loading(state.loading)
+      setWw3Frame(state.frame)
+      setWw3Var(state.var)
+      setWw3Playing(state.playing)
+      setWw3Arrows(state.arrows)
+      setWw3FrameData(state.frameData)
+      setNFrames(state.nFrames)
+    },
+  }
+
+  const renderView = () => {
+    switch (activeView) {
+      case 'map2d':
+        return (
+          <Map2D
+            layers={layers}
+            callbacks={map2dCallbacks}
+            onRef={setMap2dRef}
+          />
+        )
+      case 'flood':
+        return <Map3D />
+      case 'ww3':
+        return <LaRochelleWaveView onBack={() => setActiveView('map2d')} />
+      case 'lidar':
+        return <LaRochelleLidarTilesView onBack={() => setActiveView('map2d')} />
+      case 'ais':
+        return <LaRochelleAisLiveView onBack={() => setActiveView('map2d')} />
+      default:
+        return null
+    }
+  }
+
+  const showContextPanel = activeView === 'map2d'
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <div className="app-shell">
+      <Topbar activeView={activeView} onViewChange={handleViewChange} />
 
-      {/* ── Zone carte ────────────────────────────────────────── */}
-      <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+      <div className="app-body">
+        <Sidebar
+          activeView={activeView}
+          onViewChange={handleViewChange}
+          layers={layers}
+          onLayerToggle={handleLayerToggle}
+          bdtopoActive={bdtopoActive}
+          bdtopoCount={bdtopoCount}
+          onBdtopoToggle={handleBdtopoToggle}
+        />
 
-        {view === '2d' && <Map2D layers={layers} />}
-        {view === '3d' && <Map3D />}
+        <main className="view-area" style={{ flex: 1, position: 'relative', minWidth: 0, overflow: 'hidden' }}>
+          {renderView()}
 
-        {/* ViewToggle — haut gauche */}
-        <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 100 }}>
-          <ViewToggle current={view} onChange={setView} />
-        </div>
+          {activeView === 'map2d' && (
+            <button
+              onClick={() => setRightMode(prev => prev === 'assistant' ? 'analysis' : 'assistant')}
+              className={`chat-fab ${rightMode === 'assistant' ? 'active' : ''}`}
+              title={rightMode === 'assistant' ? 'Fermer l’assistant' : 'Ouvrir l’assistant'}
+              aria-label={rightMode === 'assistant' ? 'Fermer l’assistant' : 'Ouvrir l’assistant'}
+              type="button"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                {rightMode === 'assistant' ? (
+                  <path
+                    d="M18 6L6 18M6 6l12 12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                ) : (
+                  <path
+                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+              </svg>
 
-        {/* Bas droite — LayerControl + Legend */}
-        {view === '2d' && (
-          <div style={{
-            position: 'absolute', bottom: 36, right: 16, zIndex: 100,
-            display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
-          }}>
-            <LayerControl layers={layers} onToggle={toggleLayer} />
-            <Legend />
-          </div>
-        )}
+              {rightMode !== 'assistant' && <span className="chat-fab-dot" />}
+            </button>
+          )}
+        </main>
 
-        {/* Bouton chat — style cohérent avec les panels de la carte */}
-        <button
-          onClick={() => setChatOpen(o => !o)}
-          title={chatOpen ? 'Fermer le chatbot' : 'Ouvrir le chatbot'}
-          className={`chat-btn${chatOpen ? ' open' : ''}`}
-          style={{
-            position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: 16, zIndex: 100,
-            background: 'rgba(15,15,28,0.93)',
-            borderRadius: 10,
-            backdropFilter: 'blur(14px)',
-            cursor: 'pointer',
-            padding: '10px 14px',
-            display: 'flex', alignItems: 'center', gap: 10,
-            color: '#d8f0ff',
-            fontFamily: 'sans-serif',
-          }}
-        >
-          {/* Icône bulle */}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.85 }}>
-            {chatOpen
-              ? <path d="M18 6L6 18M6 6l12 12" stroke="#d8f0ff" strokeWidth="2" strokeLinecap="round"/>
-              : <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#d8f0ff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            }
-          </svg>
-          {/* Texte d'invitation */}
-          {!chatOpen && (
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888', marginBottom: 2 }}>Assistant IA</div>
-              <div style={{ fontSize: 11, color: 'rgba(216,240,255,0.75)', whiteSpace: 'nowrap' }}>Posez vos questions sur la submersion</div>
+        {showContextPanel && (
+          <aside className="context-panel">
+            <div className="context-panel-header">
+              <div className="context-panel-tabs">
+                <button
+                  className={`context-tab ${rightMode === 'analysis' ? 'active' : ''}`}
+                  onClick={() => setRightMode('analysis')}
+                  type="button"
+                >
+                  Analyse
+                </button>
+
+                <button
+                  className={`context-tab ${rightMode === 'assistant' ? 'active' : ''}`}
+                  onClick={() => setRightMode('assistant')}
+                  type="button"
+                >
+                  Assistant
+                </button>
+              </div>
             </div>
-          )}
-          {chatOpen && (
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888' }}>Fermer</div>
-          )}
-        </button>
 
+            <div className="context-panel-body">
+              {rightMode === 'analysis' ? (
+                <RightPanel
+                  scenarios={scenarios}
+                  activeScenario={activeScenario}
+                  impact={impact}
+                  onLoadScenario={handleLoadScenario}
+                  onClearScenario={handleClearScenario}
+                  ww3Active={ww3Active}
+                  ww3Loading={ww3Loading}
+                  ww3Frame={ww3Frame}
+                  ww3Var={ww3Var}
+                  ww3Playing={ww3Playing}
+                  ww3Arrows={ww3Arrows}
+                  currentFrame={ww3FrameData}
+                  nFrames={nFrames}
+                  onToggleWW3={handleToggleWW3}
+                  onChangeWW3Var={handleChangeWW3Var}
+                  onToggleWW3Play={handleToggleWW3Play}
+                  onStepWW3={handleStepWW3}
+                  onToggleWW3Arrows={handleToggleWW3Arrows}
+                />
+              ) : (
+                <div className="context-chat-wrap">
+                  <ChatPanel />
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
       </div>
-
-      {/* ── Panneau chat (flex column, pas de superposition) ──── */}
-      {chatOpen && (
-        <div style={{
-          width: panelW, flexShrink: 0, position: 'relative',
-          borderLeft: '1px solid rgba(34,211,238,0.18)',
-          boxShadow: '-6px 0 28px rgba(0,0,0,0.45)',
-          display: 'flex', flexDirection: 'column',
-        }}>
-          {/* Poignée de redimensionnement */}
-          <div
-            onMouseDown={onDragStart}
-            style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0, width: 5,
-              cursor: 'col-resize', zIndex: 10,
-              background: 'transparent',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(34,211,238,0.25)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          />
-          <ChatPanel />
-        </div>
-      )}
-
     </div>
   )
 }

@@ -1,0 +1,56 @@
+:root {
+  --atos-blue: #86b7b1;
+  --atos-blue-dark: #5f928c;
+  --atos-blue-light: #a9cbc6;
+  --atos-blue-dim: rgba(134, 183, 177, 0.16);
+  --atos-blue-glow: rgba(134, 183, 177, 0.05);
+
+  --bg-app: #0d1112;
+  --bg-surface: #14191a;
+  --bg-elevated: #1b2122;
+  --bg-panel: rgba(20, 25, 26, 0.96);
+  --bg-hover: rgba(243, 238, 227, 0.04);
+  --bg-active: rgba(134, 183, 177, 0.1);
+
+  --text-primary: #f3eee3;
+  --text-secondary: rgba(243, 238, 227, 0.74);
+  --text-tertiary: rgba(243, 238, 227, 0.42);
+  --text-accent: #86b7b1;
+
+  --border-subtle: rgba(243, 238, 227, 0.08);
+  --border-default: rgba(243, 238, 227, 0.14);
+  --border-strong: rgba(134, 183, 177, 0.34);
+  --border-white: rgba(243, 238, 227, 0.1);
+
+  --color-danger: #c97964;
+  --color-warning: #c8a46d;
+  --color-success: #809c79;
+  --color-info: #86b7b1;
+  --color-ocean: #6d8aa3;
+
+  --danger-dim: rgba(201, 121, 100, 0.14);
+  --warning-dim: rgba(200, 164, 109, 0.14);
+  --success-dim: rgba(128, 156, 121, 0.14);
+  --info-dim: rgba(134, 183, 177, 0.12);
+
+  --topbar-h: 60px;
+  --sidebar-w: 248px;
+  --rpanel-w: 296px;
+  --bottombar-h: 34px;
+
+  --font-ui: 'Instrument Sans', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+
+  --t-fast: 0.12s ease;
+  --t-mid: 0.2s ease;
+  --t-slow: 0.32s ease;
+
+  --shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.28);
+  --shadow-float: 0 10px 28px rgba(0, 0, 0, 0.22);
+}

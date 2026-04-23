@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="200"
+   height="400"
+   viewBox="0 0 52.916668 105.83333"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="LIGHTS.svg">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.0000001"
+     inkscape:cx="84.369235"
+     inkscape:cy="238.62126"
+     inkscape:document-units="mm"
+     inkscape:current-layer="g740"
+     showgrid="true"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     units="px"
+     inkscape:window-width="1920"
+     inkscape:window-height="1178"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       originy="-1.6023925e-007"
+       originx="0"
+       id="grid23"
+       type="xygrid" />
+    <sodipodi:guide
+       id="guide350"
+       position="26.4583333328,0"
+       orientation="1,0"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       id="guide352"
+       position="0,52.9166666656"
+       orientation="0,1"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs2" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-51.247666,-50.62626)"
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Calque 1">
+    <g
+       id="g107"
+       transform="translate(24.786129,73.189315)">
+      <g
+         inkscape:label="Calque 1"
+         id="layer1-8"
+         transform="translate(-72.445977,-88.41006)">
+        <g
+           transform="translate(90.098513,-33.584874)"
+           id="g949">
+          <g
+             inkscape:label="Calque 1"
+             id="layer1-6"
+             transform="translate(-89.897093,33.690368)">
+            <g
+               transform="translate(10.842793,-36.169005)"
+               id="g858">
+              <g
+                 inkscape:label="Calque 1"
+                 id="layer1-07"
+                 transform="translate(-10.938001,36.004736)">
+                <g
+                   id="g784"
+                   transform="translate(5.7796696,-40.33357)">
+                  <g
+                     transform="translate(-3.1304918,40.367138)"
+                     id="layer1-5"
+                     inkscape:label="Calque 1">
+                    <g
+                       transform="translate(3.0227785,-38.420563)"
+                       id="g740">
+                      <path
+                         inkscape:connector-curvature="0"
+                         id="path25338"
+                         d="m 114.71962,165.19582 -18.467955,18.2331 -1.349375,1.33945 -0.965749,1.57427 -0.373736,1.87193 0.221593,1.92484 0.783839,1.73302 1.293165,1.39899 1.713198,0.94587 1.914944,0.4002 1.832246,-0.22489 1.53127,-0.87974 1.27663,-1.34938 1.13439,-1.60073 0.21828,-0.33403 z m 5.91344,-8.03672 c 0,-0.5842 -0.47413,-1.05833 -1.05833,-1.05833 -0.5842,0 -1.05833,0.47413 -1.05833,1.05833 0,0.5842 0.47413,1.05833 1.05833,1.05833 0.5842,0 1.05833,-0.47413 1.05833,-1.05833 z"
+						 fill="param(fill) #FFF"
+						 stroke="param(outline) #000"
+						 stroke-width="param(outline-width) 0.26458332"/>
+                    </g>
+                  </g>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
