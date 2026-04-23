@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "sistaw",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-15,
+"features": [
+{ "type": "Feature", "properties": { "id": 9, "inspireid": "FR000001157400001", "posacc": 2.0, "inform": null, "ninfom": null, "persta": null, "perend": null, "catsiw": "13", "comcha": null, "status": null }, "geometry": { "type": "Point", "coordinates": [ -1.3693833, 46.0352167 ] } },
+{ "type": "Feature", "properties": { "id": 97, "inspireid": "FR000003753800003", "posacc": 0.4, "inform": null, "ninfom": null, "persta": null, "perend": null, "catsiw": "13", "comcha": null, "status": null }, "geometry": { "type": "Point", "coordinates": [ -1.1724164, 46.1482594 ] } }
+]
+}

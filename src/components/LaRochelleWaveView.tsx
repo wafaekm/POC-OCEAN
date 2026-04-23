@@ -6,33 +6,56 @@ import WW3Legend from './Map2D/WW3Legend'
 
 const CESIUM_TOKEN = import.meta.env.VITE_CESIUM_TOKEN
 
+const SOURCE_MANIFESTS = {
+  waves: '/processed/ww3_aligned/export/waves/manifest.json',
+  level: '/processed/ww3_aligned/export/level/manifest.json',
+  tides: '/processed/ww3_aligned/export/tides/manifest.json',
+} as const
+
+const WIND_CZML_URL = '/processed/ww3_aligned/export/wind.czml'
+const CURRENT_CZML_URL = '/processed/ww3_aligned/export/current.czml'
+
 const PLACEHOLDER_IMAGE =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XgnkAAAAASUVORK5CYII='
 
-const MATERIAL_TYPE = 'WW3SurfaceAnimatedTerrainAligned'
+const MATERIAL_TYPE = 'WW3RasterSurfaceAnimatedMultiSource'
 const WW3_SURFACE_LIFT_M = 2.5
 const TERRAIN_SAMPLE_BATCH = 700
 const FRAME_PLAY_INTERVAL_MS = 900
+const MAX_MESH_SIZE = 180
 
 type Props = {
   onBack: () => void
 }
 
-type VariableKey = 'hs' | 'tp' | 'dir' | 'phs0' | 'ptp0'
+type ScalarSourceKey = 'waves' | 'level' | 'tides'
+type UiVariableKey = 'hs' | 'ptp' | 'dir' | 'phs0' | 'ptp0' | 'zos' | 'tide_height'
 type BasemapKey = 'ion' | 'osm' | 'carto'
 
 type VariableDef = {
-  key: VariableKey
+  key: UiVariableKey
   label: string
   unit: string
+  legendKey?: 'hs' | 'tp' | 'dir' | 'phs0' | 'ptp0'
+  assetKeys: string[]
 }
 
-type ColorStop = {
-  value: number
-  color: [number, number, number]
+type SourceDef = {
+  key: ScalarSourceKey
+  label: string
+  shortLabel: string
+  manifestUrl: string
+  variables: VariableDef[]
 }
 
-type WW3Point = {
+type BBox = {
+  lon_min: number
+  lat_min: number
+  lon_max: number
+  lat_max: number
+}
+
+type MeshPoint = {
   id: number
   lon: number
   lat: number
@@ -40,49 +63,11 @@ type WW3Point = {
   iy: number
 }
 
-type WW3Cell = {
-  hs: number | null
-  tp: number | null
-  dir: number | null
-  phs0: number | null
-  ptp0: number | null
-}
-
-type WW3Frame = {
-  ts: string
-  nActive: number
-  hsMax: number
-  hsMean: number
-  cells: Record<number, WW3Cell>
-  activePointIds: number[]
-}
-
-type WW3Metadata = {
-  project: string
-  date: string
-  bbox: {
-    lon_min: number
-    lat_min: number
-    lon_max: number
-    lat_max: number
-  }
-  center: {
-    lon: number
-    lat: number
-  }
-  n_points: number
-  n_frames: number
-  timesteps: string[]
-  hs_global_max: number
-  resolution_m: number
-  crs: string
-}
-
 type RasterInfo = {
   width: number
   height: number
-  points: WW3Point[]
-  pointById: Map<number, WW3Point>
+  points: MeshPoint[]
+  pointById: Map<number, MeshPoint>
   pointIdGrid: number[][]
   vertexIndexByPointId: Map<number, number>
   lons: number[]
@@ -100,29 +85,57 @@ type MeshTopology = {
   triangles: number[]
 }
 
-type PreparedFrameTextures = {
-  variables: Record<VariableKey, string>
-  shallowMask: string
+type VariableMeta = {
+  unit?: string | null
+  vmin?: number | null
+  vmax?: number | null
+  colormap?: string | null
 }
 
-type SelectedSample = {
-  pointId: number
-  lon: number
-  lat: number
+type ScalarManifestFrame = {
   ts: string
-  hs: number | null
-  tp: number | null
-  dir: number | null
-  phs0: number | null
-  ptp0: number | null
+  assets: Record<string, string>
 }
 
-const VARIABLES: VariableDef[] = [
-  { key: 'hs', label: 'Hs', unit: 'm' },
-  { key: 'tp', label: 'Tp', unit: 's' },
-  { key: 'dir', label: 'Dir', unit: '°' },
-  { key: 'phs0', label: 'Hs houle 1', unit: 'm' },
-  { key: 'ptp0', label: 'Tp houle 1', unit: 's' },
+type ScalarManifestInfo = {
+  bbox: BBox
+  width: number
+  height: number
+  variables: string[]
+  variableMeta: Record<string, VariableMeta>
+  frames: ScalarManifestFrame[]
+  crs?: string | null
+  timestepSeconds?: number | null
+}
+
+const SOURCE_DEFS: SourceDef[] = [
+  {
+    key: 'waves',
+    label: 'Vagues',
+    shortLabel: 'Waves',
+    manifestUrl: SOURCE_MANIFESTS.waves,
+    variables: [
+      { key: 'hs', label: 'Hs', unit: 'm', legendKey: 'hs', assetKeys: ['hs'] },
+      { key: 'ptp', label: 'Tp', unit: 's', legendKey: 'tp', assetKeys: ['ptp', 'tp'] },
+      { key: 'dir', label: 'Dir', unit: '°', legendKey: 'dir', assetKeys: ['dir', 'pdir1'] },
+      { key: 'phs0', label: 'Hs houle 1', unit: 'm', legendKey: 'phs0', assetKeys: ['phs0', 'phs1'] },
+      { key: 'ptp0', label: 'Tp houle 1', unit: 's', legendKey: 'ptp0', assetKeys: ['ptp0', 'ptp1'] },
+    ],
+  },
+  {
+    key: 'level',
+    label: 'Niveau de mer',
+    shortLabel: 'Level',
+    manifestUrl: SOURCE_MANIFESTS.level,
+    variables: [{ key: 'zos', label: 'Niveau', unit: 'm', assetKeys: ['zos'] }],
+  },
+  {
+    key: 'tides',
+    label: 'Marée',
+    shortLabel: 'Tides',
+    manifestUrl: SOURCE_MANIFESTS.tides,
+    variables: [{ key: 'tide_height', label: 'Marée', unit: 'm', assetKeys: ['tide_height'] }],
+  },
 ]
 
 const BASEMAPS: { key: BasemapKey; label: string }[] = [
@@ -130,60 +143,6 @@ const BASEMAPS: { key: BasemapKey; label: string }[] = [
   { key: 'osm', label: 'OSM' },
   { key: 'carto', label: 'Clair' },
 ]
-
-function hexToRgb(hex: string): [number, number, number] {
-  const clean = hex.replace('#', '')
-  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
-  const value = parseInt(full, 16)
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255]
-}
-
-const COLOR_SCALES: Record<VariableKey, ColorStop[]> = {
-  hs: [
-    { value: 0.0, color: hexToRgb('#001840') },
-    { value: 0.25, color: hexToRgb('#003d7a') },
-    { value: 0.5, color: hexToRgb('#0066cc') },
-    { value: 0.75, color: hexToRgb('#0099ff') },
-    { value: 1.0, color: hexToRgb('#00ccff') },
-    { value: 1.25, color: hexToRgb('#66ffcc') },
-    { value: 1.5, color: hexToRgb('#ffdd00') },
-    { value: 2.0, color: hexToRgb('#ff4400') },
-  ],
-  tp: [
-    { value: 0.0, color: hexToRgb('#001840') },
-    { value: 4.0, color: hexToRgb('#003388') },
-    { value: 6.0, color: hexToRgb('#0066cc') },
-    { value: 8.0, color: hexToRgb('#00aaff') },
-    { value: 10.0, color: hexToRgb('#44eebb') },
-    { value: 12.0, color: hexToRgb('#aaff44') },
-    { value: 15.0, color: hexToRgb('#ffdd00') },
-    { value: 20.0, color: hexToRgb('#ff4400') },
-  ],
-  dir: [
-    { value: 0.0, color: hexToRgb('#ff0000') },
-    { value: 90.0, color: hexToRgb('#ffff00') },
-    { value: 180.0, color: hexToRgb('#0088ff') },
-    { value: 270.0, color: hexToRgb('#8800ff') },
-    { value: 360.0, color: hexToRgb('#ff0000') },
-  ],
-  phs0: [
-    { value: 0.0, color: hexToRgb('#001020') },
-    { value: 0.3, color: hexToRgb('#004488') },
-    { value: 0.6, color: hexToRgb('#0077cc') },
-    { value: 0.9, color: hexToRgb('#00aaff') },
-    { value: 1.2, color: hexToRgb('#44eebb') },
-    { value: 1.5, color: hexToRgb('#ff8800') },
-  ],
-  ptp0: [
-    { value: 0.0, color: hexToRgb('#001020') },
-    { value: 5.0, color: hexToRgb('#003366') },
-    { value: 8.0, color: hexToRgb('#0066cc') },
-    { value: 10.0, color: hexToRgb('#00aaff') },
-    { value: 12.0, color: hexToRgb('#44ddbb') },
-    { value: 15.0, color: hexToRgb('#aaff44') },
-    { value: 20.0, color: hexToRgb('#ff4400') },
-  ],
-}
 
 let materialRegistered = false
 
@@ -193,6 +152,15 @@ function clamp(value: number, min: number, max: number) {
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t
+}
+
+function findSourceDef(key: ScalarSourceKey) {
+  return SOURCE_DEFS.find(item => item.key === key) ?? SOURCE_DEFS[0]
+}
+
+function findVariableDef(sourceKey: ScalarSourceKey, variableKey: UiVariableKey) {
+  const source = findSourceDef(sourceKey)
+  return source.variables.find(item => item.key === variableKey) ?? source.variables[0]
 }
 
 function normalizeTimestampToIsoUtc(ts: string) {
@@ -290,17 +258,15 @@ function registerAnimatedMaterial() {
       type: MATERIAL_TYPE,
       uniforms: {
         image: PLACEHOLDER_IMAGE,
-        shallowMask: PLACEHOLDER_IMAGE,
         time: 0,
         dayBlend: 1,
-        swellStrength: 0.12,
-        foamStrength: 0.32,
+        swellStrength: 0.18,
+        foamStrength: 0.42,
         swellSpeed: 0.44,
         shoreSpeed: 1.12,
       },
       source: `
         uniform sampler2D image;
-        uniform sampler2D shallowMask;
         uniform float time;
         uniform float dayBlend;
         uniform float swellStrength;
@@ -320,7 +286,6 @@ function registerAnimatedMaterial() {
             return material;
           }
 
-          float shallow = texture(shallowMask, uv).r;
           float t = time;
 
           float swellA = sin((uv.x * 6.2 + uv.y * 2.2) * 6.28318 - t * swellSpeed);
@@ -330,25 +295,16 @@ function registerAnimatedMaterial() {
           float swell = 0.5 + 0.5 * (swellA * 0.5 + swellB * 0.32 + swellC * 0.18);
           swell = clamp(swell, 0.0, 1.0);
 
-          float shoreA = 0.5 + 0.5 * sin((uv.x * 8.0 - uv.y * 12.0) * 6.28318 - t * shoreSpeed);
-          float shoreB = 0.5 + 0.5 * sin((uv.x * 13.0 + uv.y * 4.6) * 6.28318 - t * shoreSpeed * 1.22);
-          float shoreC = 0.5 + 0.5 * sin((uv.x * 20.0 - uv.y * 16.0) * 6.28318 + t * shoreSpeed * 0.74);
+          float ambient = mix(0.42, 1.0, dayBlend);
+          float emissiveFactor = mix(0.75, 1.0, dayBlend);
 
-          float foamNoise = shoreA * 0.45 + shoreB * 0.35 + shoreC * 0.20;
-          float shoreFoam = smoothstep(0.60, 0.92, foamNoise) * shallow * foamStrength;
+          vec3 color = base.rgb;
+          color *= ambient;
+          color *= 1.0 + swell * (swellStrength * 1.35);
 
-      float ambient = mix(0.42, 1.0, dayBlend);
-      float foamLight = mix(0.65, 1.0, dayBlend);
-      float emissiveFactor = mix(0.75, 1.0, dayBlend);
-
-      vec3 color = base.rgb;
-      color *= ambient;
-      color *= 1.0 + swell * (swellStrength * 1.35);
-      color = mix(color, vec3(1.0), shoreFoam * 0.42 * foamLight);
-
-      material.diffuse = color;
-      material.emission = vec3((swell * 0.05 + shoreFoam * 0.14) * emissiveFactor);
-      material.alpha = base.a;
+          material.diffuse = color;
+          material.emission = vec3(swell * 0.05 * emissiveFactor);
+          material.alpha = base.a;
 
           return material;
         }
@@ -363,95 +319,268 @@ function registerAnimatedMaterial() {
 async function loadJson<T>(url: string): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) {
-    throw new Error(`Failed to load ${url}`)
+    throw new Error(`Failed to load ${url} (${response.status})`)
   }
   return response.json()
 }
 
-function normalizeCell(raw: any): WW3Cell {
+function makeAssetUrl(assetPath: string, manifestUrl: string) {
+  if (!assetPath) return PLACEHOLDER_IMAGE
+  if (/^(https?:)?\/\//.test(assetPath)) return assetPath
+  if (assetPath.startsWith('/')) return assetPath
+  return new URL(assetPath, new URL(manifestUrl, window.location.href)).toString()
+}
+
+function formatFrameLabel(ts: string) {
+  if (!ts) return '—'
+  const raw = ts.replace('T', ' ')
+  const chunks = raw.split(' ')
+  if (chunks.length < 2) return raw
+  return chunks[1].slice(0, 5)
+}
+
+function formatNumber(value: number | null, digits = 2) {
+  if (value === null || Number.isNaN(value)) return '—'
+  return value.toFixed(digits)
+}
+
+function resolveBBox(raw: any): BBox | null {
+  const source = raw?.bbox ?? raw?.bounds ?? raw?.extent ?? null
+
+  if (Array.isArray(source) && source.length >= 4) {
+    return {
+      lon_min: Number(source[0]),
+      lat_min: Number(source[1]),
+      lon_max: Number(source[2]),
+      lat_max: Number(source[3]),
+    }
+  }
+
+  if (source && typeof source === 'object') {
+    const lonMin = source.lon_min ?? source.min_lon ?? source.xmin ?? source.west
+    const latMin = source.lat_min ?? source.min_lat ?? source.ymin ?? source.south
+    const lonMax = source.lon_max ?? source.max_lon ?? source.xmax ?? source.east
+    const latMax = source.lat_max ?? source.max_lat ?? source.ymax ?? source.north
+
+    if ([lonMin, latMin, lonMax, latMax].every(v => v !== undefined && v !== null)) {
+      return {
+        lon_min: Number(lonMin),
+        lat_min: Number(latMin),
+        lon_max: Number(lonMax),
+        lat_max: Number(latMax),
+      }
+    }
+  }
+
+  return null
+}
+
+function resolveSize(raw: any): { width: number; height: number } | null {
+  const width =
+    raw?.width ??
+    raw?.raster?.width ??
+    raw?.grid?.width ??
+    raw?.grid_width ??
+    raw?.nx ??
+    raw?.shape?.[1] ??
+    null
+
+  const height =
+    raw?.height ??
+    raw?.raster?.height ??
+    raw?.grid?.height ??
+    raw?.grid_height ??
+    raw?.ny ??
+    raw?.shape?.[0] ??
+    null
+
+  if (!width || !height) return null
+
   return {
-    hs: raw?.hs ?? null,
-    tp: raw?.tp ?? raw?.ptp0 ?? null,
-    dir: raw?.dir ?? raw?.pd0 ?? raw?.pdir0 ?? null,
-    phs0: raw?.phs0 ?? null,
-    ptp0: raw?.ptp0 ?? raw?.tp ?? null,
+    width: Number(width),
+    height: Number(height),
   }
 }
 
-function parseGrid(raw: any): WW3Point[] {
-  const pointsSource = Array.isArray(raw) ? raw : raw?.points ?? []
-  return pointsSource.map((p: any, index: number) => ({
-    id: Number(p?.id ?? index),
-    lon: Number(p?.lon),
-    lat: Number(p?.lat),
-    ix: -1,
-    iy: -1,
-  }))
-}
+function parseVariableMeta(raw: any): Record<string, VariableMeta> {
+  const variables = raw?.variables
+  if (!variables || typeof variables !== 'object' || Array.isArray(variables)) {
+    return {}
+  }
 
-function parseFrames(raw: any): WW3Frame[] {
-  const framesSource = Array.isArray(raw) ? raw : raw?.frames ?? []
-  return framesSource.map((frame: any) => {
-    const rawCells = frame?.cells ?? {}
-    const cells: Record<number, WW3Cell> = {}
+  const out: Record<string, VariableMeta> = {}
 
-    Object.entries(rawCells).forEach(([key, value]) => {
-      cells[Number(key)] = normalizeCell(value)
-    })
-
-    return {
-      ts: String(frame?.ts ?? ''),
-      nActive: Number(frame?.n_active ?? Object.keys(cells).length),
-      hsMax: Number(frame?.hs_max ?? 0),
-      hsMean: Number(frame?.hs_mean ?? 0),
-      cells,
-      activePointIds: Object.keys(cells).map(k => Number(k)),
+  Object.entries(variables).forEach(([key, value]: [string, any]) => {
+    out[key] = {
+      unit: value?.unit ?? null,
+      vmin: value?.vmin != null ? Number(value.vmin) : null,
+      vmax: value?.vmax != null ? Number(value.vmax) : null,
+      colormap: value?.colormap ?? null,
     }
   })
+
+  return out
 }
 
-function buildRasterInfo(points: WW3Point[]): RasterInfo {
-  const lonKeys = Array.from(new Set(points.map(p => p.lon.toFixed(6))))
-    .map(Number)
-    .sort((a, b) => a - b)
+function buildFramesFromVariableFileLists(raw: any, manifestUrl: string) {
+  const variables = raw?.variables
 
-  const latKeys = Array.from(new Set(points.map(p => p.lat.toFixed(6))))
-    .map(Number)
-    .sort((a, b) => a - b)
+  if (!variables || typeof variables !== 'object' || Array.isArray(variables)) {
+    return []
+  }
 
-  const lonIndex = new Map<string, number>()
-  const latIndex = new Map<string, number>()
+  const frameMap = new Map<string, ScalarManifestFrame>()
 
-  lonKeys.forEach((lon, index) => lonIndex.set(lon.toFixed(6), index))
-  latKeys.forEach((lat, index) => latIndex.set(lat.toFixed(6), index))
+  Object.entries(variables).forEach(([variableKey, variableRaw]: [string, any]) => {
+    const files = variableRaw?.files
 
-  const indexedPoints = points.map(point => ({
-    ...point,
-    ix: lonIndex.get(point.lon.toFixed(6)) ?? 0,
-    iy: latIndex.get(point.lat.toFixed(6)) ?? 0,
-  }))
+    if (!Array.isArray(files)) return
 
-  const pointById = new Map<number, WW3Point>()
-  const vertexIndexByPointId = new Map<number, number>()
-  const pointIdGrid = Array.from({ length: latKeys.length }, () =>
-    Array.from({ length: lonKeys.length }, () => -1)
-  )
+    files.forEach((fileRaw: any) => {
+      const ts = String(fileRaw?.time ?? fileRaw?.ts ?? fileRaw?.timestamp ?? '').trim()
+      const path = String(fileRaw?.path ?? '').trim()
 
-  indexedPoints.forEach((point, index) => {
-    pointById.set(point.id, point)
-    vertexIndexByPointId.set(point.id, index)
-    pointIdGrid[point.iy][point.ix] = point.id
+      if (!ts || !path) return
+
+      if (!frameMap.has(ts)) {
+        frameMap.set(ts, {
+          ts,
+          assets: {},
+        })
+      }
+
+      const frame = frameMap.get(ts)
+      if (!frame) return
+
+      frame.assets[variableKey] = makeAssetUrl(path, manifestUrl)
+    })
   })
 
+  return Array.from(frameMap.values())
+    .filter(frame => Object.keys(frame.assets).length > 0)
+    .sort((a, b) => a.ts.localeCompare(b.ts))
+}
+
+async function loadImageSize(url: string) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    img.onerror = () => reject(new Error(`Failed to load image ${url}`))
+    img.src = url
+  })
+}
+
+async function findFirstLoadableImageSize(frames: ScalarManifestFrame[]) {
+  for (const frame of frames) {
+    for (const url of Object.values(frame.assets)) {
+      try {
+        return await loadImageSize(url)
+      } catch {}
+    }
+  }
+
+  throw new Error('No loadable raster image found in manifest')
+}
+
+async function loadScalarManifestInfo(manifestUrl: string): Promise<ScalarManifestInfo> {
+  const raw = await loadJson<any>(manifestUrl)
+  const bbox = resolveBBox(raw)
+
+  if (!bbox) {
+    throw new Error('Manifest bbox not found')
+  }
+
+  const frames = buildFramesFromVariableFileLists(raw, manifestUrl)
+
+  if (!frames.length) {
+    throw new Error('Manifest frames not found')
+  }
+
+  let size = resolveSize(raw)
+
+  if (!size) {
+    size = await findFirstLoadableImageSize(frames)
+  }
+
+  const variableMeta = parseVariableMeta(raw)
+  const variables = Object.keys(variableMeta).length
+    ? Object.keys(variableMeta)
+    : Array.from(new Set(frames.flatMap(frame => Object.keys(frame.assets))))
+
   return {
-    width: lonKeys.length,
-    height: latKeys.length,
-    points: indexedPoints,
+    bbox,
+    width: size.width,
+    height: size.height,
+    variables,
+    variableMeta,
+    frames,
+    crs: raw?.crs ?? null,
+    timestepSeconds:
+      raw?.timestep_seconds ??
+      raw?.time_step_seconds ??
+      raw?.dt_seconds ??
+      (raw?.timestep_h != null ? Number(raw.timestep_h) * 3600 : null),
+  }
+}
+
+function fitMeshSize(width: number, height: number, maxSize = MAX_MESH_SIZE) {
+  const maxDim = Math.max(width, height)
+  if (maxDim <= maxSize) {
+    return { width, height }
+  }
+
+  const scale = maxSize / maxDim
+  return {
+    width: Math.max(2, Math.round(width * scale)),
+    height: Math.max(2, Math.round(height * scale)),
+  }
+}
+
+function buildRasterInfoFromBBox(bbox: BBox, width: number, height: number): RasterInfo {
+  const points: MeshPoint[] = []
+  const pointById = new Map<number, MeshPoint>()
+  const vertexIndexByPointId = new Map<number, number>()
+  const pointIdGrid = Array.from({ length: height }, () => Array.from({ length: width }, () => -1))
+  const lons: number[] = []
+  const lats: number[] = []
+
+  for (let x = 0; x < width; x += 1) {
+    lons.push(lerp(bbox.lon_min, bbox.lon_max, width === 1 ? 0 : x / (width - 1)))
+  }
+
+  for (let y = 0; y < height; y += 1) {
+    lats.push(lerp(bbox.lat_min, bbox.lat_max, height === 1 ? 0 : y / (height - 1)))
+  }
+
+  let id = 0
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const point: MeshPoint = {
+        id,
+        lon: lons[x],
+        lat: lats[y],
+        ix: x,
+        iy: y,
+      }
+
+      points.push(point)
+      pointById.set(id, point)
+      vertexIndexByPointId.set(id, points.length - 1)
+      pointIdGrid[y][x] = id
+      id += 1
+    }
+  }
+
+  return {
+    width,
+    height,
+    points,
     pointById,
     pointIdGrid,
     vertexIndexByPointId,
-    lons: lonKeys,
-    lats: latKeys,
+    lons,
+    lats,
   }
 }
 
@@ -471,8 +600,6 @@ function buildTopologyFromRaster(raster: RasterInfo): MeshTopology {
       const id01 = raster.pointIdGrid[y + 1][x]
       const id11 = raster.pointIdGrid[y + 1][x + 1]
 
-      if (id00 < 0 || id10 < 0 || id01 < 0 || id11 < 0) continue
-
       const i00 = raster.vertexIndexByPointId.get(id00)
       const i10 = raster.vertexIndexByPointId.get(id10)
       const i01 = raster.vertexIndexByPointId.get(id01)
@@ -488,253 +615,6 @@ function buildTopologyFromRaster(raster: RasterInfo): MeshTopology {
   }
 
   return { vertices, triangles }
-}
-
-function sampleColor(stops: ColorStop[], value: number): [number, number, number] {
-  if (value <= stops[0].value) return stops[0].color
-  if (value >= stops[stops.length - 1].value) return stops[stops.length - 1].color
-
-  for (let i = 0; i < stops.length - 1; i += 1) {
-    const a = stops[i]
-    const b = stops[i + 1]
-
-    if (value >= a.value && value <= b.value) {
-      const t = (value - a.value) / (b.value - a.value || 1)
-      return [
-        Math.round(lerp(a.color[0], b.color[0], t)),
-        Math.round(lerp(a.color[1], b.color[1], t)),
-        Math.round(lerp(a.color[2], b.color[2], t)),
-      ]
-    }
-  }
-
-  return stops[stops.length - 1].color
-}
-
-function getCellValue(cell: WW3Cell | undefined, variable: VariableKey): number | null {
-  if (!cell) return null
-  return cell[variable] ?? null
-}
-
-function upscaleCanvas(canvas: HTMLCanvasElement, factor = 4) {
-  const out = document.createElement('canvas')
-  out.width = canvas.width * factor
-  out.height = canvas.height * factor
-  const ctx = out.getContext('2d')
-
-  if (!ctx) return canvas
-
-  ctx.imageSmoothingEnabled = true
-  ctx.drawImage(canvas, 0, 0, out.width, out.height)
-
-  return out
-}
-
-function buildVariableTexture(frame: WW3Frame, raster: RasterInfo, variable: VariableKey): string {
-  const scale = COLOR_SCALES[variable]
-  const canvas = document.createElement('canvas')
-  canvas.width = raster.width
-  canvas.height = raster.height
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return PLACEHOLDER_IMAGE
-
-  const image = ctx.createImageData(raster.width, raster.height)
-
-  for (const pointId of frame.activePointIds) {
-    const point = raster.pointById.get(pointId)
-    const cell = frame.cells[pointId]
-    const value = getCellValue(cell, variable)
-
-    if (!point || value === null) continue
-
-    const [r, g, b] = sampleColor(scale, value)
-    const x = point.ix
-    const y = raster.height - 1 - point.iy
-    const idx = (y * raster.width + x) * 4
-
-    image.data[idx] = r
-    image.data[idx + 1] = g
-    image.data[idx + 2] = b
-    image.data[idx + 3] = 255
-  }
-
-  ctx.putImageData(image, 0, 0)
-
-  return upscaleCanvas(canvas, 4).toDataURL('image/png')
-}
-
-function buildShallowMask(frame: WW3Frame, raster: RasterInfo, hsGlobalMax: number): string {
-  const width = raster.width
-  const height = raster.height
-  const values = new Float32Array(width * height)
-  const filled = new Uint8Array(width * height)
-
-  for (const pointId of frame.activePointIds) {
-    const point = raster.pointById.get(pointId)
-    const hs = frame.cells[pointId]?.hs
-    if (!point || hs === null) continue
-
-    const x = point.ix
-    const y = height - 1 - point.iy
-    const idx = y * width + x
-
-    values[idx] = clamp(hs / Math.max(0.01, hsGlobalMax), 0, 1)
-    filled[idx] = 1
-  }
-
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return PLACEHOLDER_IMAGE
-
-  const image = ctx.createImageData(width, height)
-
-  const getValue = (x: number, y: number) => {
-    const xx = clamp(x, 0, width - 1)
-    const yy = clamp(y, 0, height - 1)
-    return values[yy * width + xx]
-  }
-
-  const isFilled = (x: number, y: number) => {
-    const xx = clamp(x, 0, width - 1)
-    const yy = clamp(y, 0, height - 1)
-    return filled[yy * width + xx] === 1
-  }
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const idx1 = y * width + x
-      if (!filled[idx1]) continue
-
-      const c = getValue(x, y)
-      const l = getValue(x - 1, y)
-      const r = getValue(x + 1, y)
-      const u = getValue(x, y - 1)
-      const d = getValue(x, y + 1)
-
-      const grad = Math.abs(r - l) + Math.abs(d - u)
-      const shallowBase = Math.pow(1 - c, 1.06)
-      const coastBoost = clamp(grad * 2.4, 0, 1)
-      const neighborMissing =
-        Number(!isFilled(x - 1, y)) +
-        Number(!isFilled(x + 1, y)) +
-        Number(!isFilled(x, y - 1)) +
-        Number(!isFilled(x, y + 1))
-
-      const edgeBoost = clamp(neighborMissing / 4, 0, 1)
-      const mask = clamp(shallowBase * 0.9 + coastBoost * 0.85 + edgeBoost * 0.85, 0, 1)
-      const px = idx1 * 4
-      const v = Math.round(mask * 255)
-
-      image.data[px] = v
-      image.data[px + 1] = v
-      image.data[px + 2] = v
-      image.data[px + 3] = 255
-    }
-  }
-
-  ctx.putImageData(image, 0, 0)
-
-  return upscaleCanvas(canvas, 4).toDataURL('image/png')
-}
-
-function formatNumber(value: number | null, digits = 2) {
-  if (value === null || Number.isNaN(value)) return '—'
-  return value.toFixed(digits)
-}
-
-function formatFrameLabel(ts: string) {
-  if (!ts) return '—'
-  const raw = ts.replace('T', ' ')
-  const chunks = raw.split(' ')
-  if (chunks.length < 2) return raw
-  return chunks[1].slice(0, 5)
-}
-
-function destinationPoint(lon: number, lat: number, bearingDeg: number, distanceMeters: number) {
-  const radius = 6378137
-  const angularDistance = distanceMeters / radius
-  const bearing = Cesium.Math.toRadians(bearingDeg)
-  const lat1 = Cesium.Math.toRadians(lat)
-  const lon1 = Cesium.Math.toRadians(lon)
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(angularDistance) +
-      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
-  )
-
-  const lon2 =
-    lon1 +
-    Math.atan2(
-      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
-      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
-    )
-
-  return {
-    lon: Cesium.Math.toDegrees(lon2),
-    lat: Cesium.Math.toDegrees(lat2),
-  }
-}
-
-function buildSample(frame: WW3Frame, point: WW3Point): SelectedSample {
-  const cell = frame.cells[point.id]
-  return {
-    pointId: point.id,
-    lon: point.lon,
-    lat: point.lat,
-    ts: frame.ts,
-    hs: cell?.hs ?? null,
-    tp: cell?.tp ?? null,
-    dir: cell?.dir ?? null,
-    phs0: cell?.phs0 ?? null,
-    ptp0: cell?.ptp0 ?? null,
-  }
-}
-
-function findNearestActivePoint(
-  lon: number,
-  lat: number,
-  frame: WW3Frame,
-  pointById: Map<number, WW3Point>
-): WW3Point | null {
-  let bestPoint: WW3Point | null = null
-  let bestDistance = Number.POSITIVE_INFINITY
-  const cosLat = Math.cos(Cesium.Math.toRadians(lat))
-
-  for (const pointId of frame.activePointIds) {
-    const point = pointById.get(pointId)
-    if (!point) continue
-
-    const dx = (point.lon - lon) * cosLat
-    const dy = point.lat - lat
-    const distance = dx * dx + dy * dy
-
-    if (distance < bestDistance) {
-      bestDistance = distance
-      bestPoint = point
-    }
-  }
-
-  return bestPoint
-}
-
-async function createBasemapProvider(key: BasemapKey) {
-  if (key === 'ion') {
-    return Cesium.IonImageryProvider.fromAssetId(2)
-  }
-
-  if (key === 'osm') {
-    return new Cesium.OpenStreetMapImageryProvider({
-      url: 'https://tile.openstreetmap.org/',
-    })
-  }
-
-  return new Cesium.UrlTemplateImageryProvider({
-    url: 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-    credit: '© OpenStreetMap contributors © CARTO',
-  })
 }
 
 async function sampleTerrainForRaster(
@@ -760,18 +640,9 @@ async function sampleTerrainForRaster(
 function createSurfacePrimitive(
   viewer: Cesium.Viewer,
   topology: MeshTopology,
-  metadata: WW3Metadata,
+  bbox: BBox,
   terrainByPointId: Map<number, number>
 ) {
-  if (!topology.vertices.length) {
-    throw new Error('WW3 surface has no vertices')
-  }
-
-  if (!topology.triangles.length) {
-    throw new Error('WW3 surface has no triangles')
-  }
-
-  const { lon_min, lon_max, lat_min, lat_max } = metadata.bbox
   const positions = new Float64Array(topology.vertices.length * 3)
   const sts = new Float32Array(topology.vertices.length * 2)
 
@@ -784,8 +655,8 @@ function createSurfacePrimitive(
     positions[index * 3 + 1] = cart.y
     positions[index * 3 + 2] = cart.z
 
-    const u = (vertex.lon - lon_min) / Math.max(1e-9, lon_max - lon_min)
-    const v = (vertex.lat - lat_min) / Math.max(1e-9, lat_max - lat_min)
+    const u = (vertex.lon - bbox.lon_min) / Math.max(1e-9, bbox.lon_max - bbox.lon_min)
+    const v = (vertex.lat - bbox.lat_min) / Math.max(1e-9, bbox.lat_max - bbox.lat_min)
 
     sts[index * 2] = clamp(u, 0, 1)
     sts[index * 2 + 1] = clamp(v, 0, 1)
@@ -814,11 +685,10 @@ function createSurfacePrimitive(
       type: MATERIAL_TYPE,
       uniforms: {
         image: PLACEHOLDER_IMAGE,
-        shallowMask: PLACEHOLDER_IMAGE,
         time: 0,
         dayBlend: 1,
-        swellStrength: 0.12,
-        foamStrength: 0.32,
+        swellStrength: 0.18,
+        foamStrength: 0.42,
         swellSpeed: 0.44,
         shoreSpeed: 1.12,
       },
@@ -843,42 +713,104 @@ function createSurfacePrimitive(
   return { primitive, material }
 }
 
+async function createBasemapProvider(key: BasemapKey) {
+  if (key === 'ion') {
+    return Cesium.IonImageryProvider.fromAssetId(2)
+  }
+
+  if (key === 'osm') {
+    return new Cesium.OpenStreetMapImageryProvider({
+      url: 'https://tile.openstreetmap.org/',
+    })
+  }
+
+  return new Cesium.UrlTemplateImageryProvider({
+    url: 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+    credit: '© OpenStreetMap contributors © CARTO',
+  })
+}
+
+function getFrameAsset(frame: ScalarManifestFrame | null | undefined, variableDef: VariableDef | null | undefined) {
+  if (!frame || !variableDef) return null
+
+  for (const assetKey of variableDef.assetKeys) {
+    if (frame.assets[assetKey]) {
+      return frame.assets[assetKey]
+    }
+  }
+
+  return null
+}
+
+function getResolvedAssetKey(frame: ScalarManifestFrame | null | undefined, variableDef: VariableDef | null | undefined) {
+  if (!frame || !variableDef) return null
+
+  for (const assetKey of variableDef.assetKeys) {
+    if (frame.assets[assetKey]) {
+      return assetKey
+    }
+  }
+
+  return null
+}
+
+async function canLoadVariable(manifest: ScalarManifestInfo, variableDef: VariableDef) {
+  const candidateUrls = manifest.frames
+    .map(frame => getFrameAsset(frame, variableDef))
+    .filter((value): value is string => Boolean(value))
+    .slice(0, 3)
+
+  if (!candidateUrls.length) return false
+
+  for (const url of candidateUrls) {
+    try {
+      await loadImageSize(url)
+      return true
+    } catch {}
+  }
+
+  return false
+}
+
+function formatRange(meta?: VariableMeta | null) {
+  if (!meta) return '—'
+  if (meta.vmin == null || meta.vmax == null) return '—'
+  return `${formatNumber(meta.vmin)} → ${formatNumber(meta.vmax)}`
+}
+
 export default function LaRochelleWaveView({ onBack }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Cesium.Viewer | null>(null)
   const primitiveRef = useRef<Cesium.Primitive | null>(null)
   const materialRef = useRef<Cesium.Material | null>(null)
-  const clickHandlerRef = useRef<Cesium.ScreenSpaceEventHandler | null>(null)
   const preRenderRef = useRef<((scene: Cesium.Scene, time: Cesium.JulianDate) => void) | null>(null)
-  const arrowEntitiesRef = useRef<Cesium.Entity[]>([])
-  const texturesRef = useRef<PreparedFrameTextures[]>([])
-  const pointsByIdRef = useRef<Map<number, WW3Point>>(new Map())
-  const framesRef = useRef<WW3Frame[]>([])
+
+  const activeManifestRef = useRef<ScalarManifestInfo | null>(null)
+  const manifestsCacheRef = useRef<Partial<Record<ScalarSourceKey, ScalarManifestInfo>>>({})
   const frameTimesRef = useRef<Cesium.JulianDate[]>([])
-  const rasterRef = useRef<RasterInfo | null>(null)
-  const metadataRef = useRef<WW3Metadata | null>(null)
-  const terrainByPointIdRef = useRef<Map<number, number>>(new Map())
-  const currentFrameRef = useRef(0)
+  const windDataSourceRef = useRef<Cesium.CzmlDataSource | null>(null)
+  const currentDataSourceRef = useRef<Cesium.CzmlDataSource | null>(null)
 
   const [isReady, setIsReady] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [showArrows, setShowArrows] = useState(false)
   const [showLegend, setShowLegend] = useState(true)
-  const [selectedVariable, setSelectedVariable] = useState<VariableKey>('hs')
+  const [selectedSource, setSelectedSource] = useState<ScalarSourceKey>('waves')
+  const [selectedVariable, setSelectedVariable] = useState<UiVariableKey>('ptp')
+  const [availableVariables, setAvailableVariables] = useState<UiVariableKey[]>([])
   const [currentFrame, setCurrentFrame] = useState(0)
-  const [selectedSample, setSelectedSample] = useState<SelectedSample | null>(null)
   const [loadingText, setLoadingText] = useState('Chargement WW3...')
   const [errorText, setErrorText] = useState('')
   const [basemap, setBasemap] = useState<BasemapKey>('ion')
+  const [showWind, setShowWind] = useState(false)
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [panelCollapsed, setPanelCollapsed] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
 
+  const sourceDef = useMemo(() => findSourceDef(selectedSource), [selectedSource])
   const selectedVariableDef = useMemo(
-    () => VARIABLES.find(v => v.key === selectedVariable) ?? VARIABLES[0],
-    [selectedVariable]
+    () => findVariableDef(selectedSource, selectedVariable),
+    [selectedSource, selectedVariable]
   )
-
-  useEffect(() => {
-    currentFrameRef.current = currentFrame
-  }, [currentFrame])
 
   useEffect(() => {
     registerAnimatedMaterial()
@@ -921,11 +853,16 @@ export default function LaRochelleWaveView({ onBack }: Props) {
         viewer.scene.globe.dynamicAtmosphereLighting = true
         viewer.scene.globe.dynamicAtmosphereLightingFromSun = true
         viewer.scene.globe.showGroundAtmosphere = true
-        viewer.scene.atmosphere.dynamicLighting = Cesium.DynamicAtmosphereLightingType.SUNLIGHT
         viewer.scene.highDynamicRange = true
         viewer.scene.postProcessStages.fxaa.enabled = true
         viewer.scene.screenSpaceCameraController.enableCollisionDetection = false
         viewer.clock.shouldAnimate = false
+
+        const sceneAny = viewer.scene as any
+        const cesiumAny = Cesium as any
+        if (sceneAny.atmosphere && cesiumAny.DynamicAtmosphereLightingType) {
+          sceneAny.atmosphere.dynamicLighting = cesiumAny.DynamicAtmosphereLightingType.SUNLIGHT
+        }
 
         viewer.imageryLayers.removeAll()
         viewer.imageryLayers.addImageryProvider(await createBasemapProvider('ion'))
@@ -940,10 +877,17 @@ export default function LaRochelleWaveView({ onBack }: Props) {
           viewer.scene.primitives.add(buildings)
         } catch {}
 
+        const tick = () => {
+          if (!materialRef.current) return
+          materialRef.current.uniforms.time = performance.now() * 0.001
+        }
+
+        viewer.scene.preRender.addEventListener(tick)
+        preRenderRef.current = tick
         viewerRef.current = viewer
       } catch (error) {
         console.error(error)
-        setErrorText('Impossible d’initialiser Cesium')
+        setErrorText(error instanceof Error ? error.message : 'Impossible d’initialiser Cesium')
       }
     }
 
@@ -952,18 +896,20 @@ export default function LaRochelleWaveView({ onBack }: Props) {
     return () => {
       destroyed = true
 
-      if (clickHandlerRef.current) {
-        clickHandlerRef.current.destroy()
-        clickHandlerRef.current = null
-      }
-
       if (preRenderRef.current && viewerRef.current) {
         viewerRef.current.scene.preRender.removeEventListener(preRenderRef.current)
         preRenderRef.current = null
       }
 
-      arrowEntitiesRef.current.forEach(entity => viewerRef.current?.entities.remove(entity))
-      arrowEntitiesRef.current = []
+      if (windDataSourceRef.current && viewerRef.current) {
+        viewerRef.current.dataSources.remove(windDataSourceRef.current, true)
+        windDataSourceRef.current = null
+      }
+
+      if (currentDataSourceRef.current && viewerRef.current) {
+        viewerRef.current.dataSources.remove(currentDataSourceRef.current, true)
+        currentDataSourceRef.current = null
+      }
 
       if (primitiveRef.current && viewerRef.current) {
         viewerRef.current.scene.primitives.remove(primitiveRef.current)
@@ -980,51 +926,42 @@ export default function LaRochelleWaveView({ onBack }: Props) {
   useEffect(() => {
     let cancelled = false
 
-    async function initDataAndSurface() {
+    async function loadSource() {
       try {
-        setLoadingText('Chargement des fichiers WW3...')
+        setLoadingText(`Chargement ${sourceDef.label}...`)
+        setErrorText('')
 
-        const [gridRaw, framesRaw, metadataRaw] = await Promise.all([
-          loadJson<any>('/data/ww3/lr_grid.json'),
-          loadJson<any>('/data/ww3/lr_frames.json'),
-          loadJson<WW3Metadata>('/data/ww3/lr_metadata.json'),
-        ])
+        let manifest = manifestsCacheRef.current[selectedSource]
 
-        if (cancelled) return
-
-        const gridPoints = parseGrid(gridRaw)
-        const raster = buildRasterInfo(gridPoints)
-        const frames = parseFrames(framesRaw)
-        const frameTimes = frames.map(frame => parseSimulationJulianDate(frame.ts))
-        const metadata = metadataRaw
-        const topology = buildTopologyFromRaster(raster)
-
-        if (!topology.vertices.length || !topology.triangles.length) {
-          throw new Error('WW3 topology generation failed')
+        if (!manifest) {
+          manifest = await loadScalarManifestInfo(sourceDef.manifestUrl)
+          manifestsCacheRef.current[selectedSource] = manifest
         }
 
-        pointsByIdRef.current = raster.pointById
-        framesRef.current = frames
-        frameTimesRef.current = frameTimes
-        rasterRef.current = raster
-        metadataRef.current = metadata
-
-        setLoadingText('Préparation des textures WW3...')
-
-        const preparedTextures: PreparedFrameTextures[] = frames.map(frame => ({
-          variables: {
-            hs: buildVariableTexture(frame, raster, 'hs'),
-            tp: buildVariableTexture(frame, raster, 'tp'),
-            dir: buildVariableTexture(frame, raster, 'dir'),
-            phs0: buildVariableTexture(frame, raster, 'phs0'),
-            ptp0: buildVariableTexture(frame, raster, 'ptp0'),
-          },
-          shallowMask: buildShallowMask(frame, raster, metadata.hs_global_max),
-        }))
-
         if (cancelled) return
 
-        texturesRef.current = preparedTextures
+        const available: UiVariableKey[] = []
+
+        for (const variable of sourceDef.variables) {
+          const ok = await canLoadVariable(manifest, variable)
+          if (cancelled) return
+          if (ok) {
+            available.push(variable.key)
+          }
+        }
+
+        if (!available.length) {
+          throw new Error(`Aucune variable exploitable pour ${sourceDef.label}`)
+        }
+
+        setAvailableVariables(available)
+
+        const nextVariable = available.includes(selectedVariable)
+          ? selectedVariable
+          : available[0]
+
+        setSelectedVariable(nextVariable)
+        setCurrentFrame(0)
 
         while (!viewerRef.current && !cancelled) {
           await new Promise(resolve => setTimeout(resolve, 40))
@@ -1033,101 +970,79 @@ export default function LaRochelleWaveView({ onBack }: Props) {
         if (cancelled || !viewerRef.current) return
 
         const viewer = viewerRef.current
-
+        const frameTimes = manifest.frames.map(frame => parseSimulationJulianDate(frame.ts))
+        frameTimesRef.current = frameTimes
         configureSimulationClock(viewer, frameTimes)
 
-        setLoadingText('Calage sur le terrain 3D...')
+        const meshSize = fitMeshSize(manifest.width, manifest.height, MAX_MESH_SIZE)
+        const raster = buildRasterInfoFromBBox(manifest.bbox, meshSize.width, meshSize.height)
+        const topology = buildTopologyFromRaster(raster)
+
+        setLoadingText(`Calage ${sourceDef.label} sur le terrain...`)
 
         const terrainByPointId = await sampleTerrainForRaster(viewer, raster)
         if (cancelled) return
 
-        terrainByPointIdRef.current = terrainByPointId
+        if (primitiveRef.current) {
+          viewer.scene.primitives.remove(primitiveRef.current)
+          primitiveRef.current = null
+          materialRef.current = null
+        }
 
         const { primitive, material } = createSurfacePrimitive(
           viewer,
           topology,
-          metadata,
+          manifest.bbox,
           terrainByPointId
         )
 
         primitiveRef.current = primitive
         materialRef.current = material
+        activeManifestRef.current = manifest
 
-        material.uniforms.image = preparedTextures[0].variables.hs
-        material.uniforms.shallowMask = preparedTextures[0].shallowMask
+        const variableDef = findVariableDef(selectedSource, nextVariable)
+        const firstFrame = manifest.frames[0]
+        const firstImage =
+          getFrameAsset(firstFrame, variableDef) ??
+          Object.values(firstFrame.assets)[0] ??
+          PLACEHOLDER_IMAGE
+
+        material.uniforms.image = firstImage
         material.uniforms.dayBlend = computeDayBlend(
           frameTimes[0],
-          metadata.center.lon,
-          metadata.center.lat
+          (manifest.bbox.lon_min + manifest.bbox.lon_max) * 0.5,
+          (manifest.bbox.lat_min + manifest.bbox.lat_max) * 0.5
         )
 
         viewer.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(metadata.center.lon, metadata.center.lat, 24000),
+          destination: Cesium.Cartesian3.fromDegrees(
+            (manifest.bbox.lon_min + manifest.bbox.lon_max) * 0.5,
+            (manifest.bbox.lat_min + manifest.bbox.lat_max) * 0.5,
+            24000
+          ),
           orientation: {
             heading: Cesium.Math.toRadians(0),
             pitch: Cesium.Math.toRadians(-58),
             roll: 0,
           },
-          duration: 1.6,
+          duration: 1.2,
         })
-
-        const tick = () => {
-          if (!materialRef.current) return
-          materialRef.current.uniforms.time = performance.now() * 0.001
-        }
-
-        viewer.scene.preRender.addEventListener(tick)
-        preRenderRef.current = tick
-
-        const clickHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
-
-        clickHandler.setInputAction((movement: any) => {
-          const frame = framesRef.current[currentFrameRef.current]
-          const pointMap = pointsByIdRef.current
-          if (!frame || pointMap.size === 0) return
-
-          let cartesian: Cesium.Cartesian3 | undefined
-
-          if (viewer.scene.pickPositionSupported) {
-            cartesian = viewer.scene.pickPosition(movement.position)
-          }
-
-          if (!cartesian) {
-            const ray = viewer.camera.getPickRay(movement.position)
-            if (ray) {
-              cartesian = viewer.scene.globe.pick(ray, viewer.scene)
-            }
-          }
-
-          if (!cartesian) return
-
-          const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
-          const lon = Cesium.Math.toDegrees(cartographic.longitude)
-          const lat = Cesium.Math.toDegrees(cartographic.latitude)
-
-          const nearest = findNearestActivePoint(lon, lat, frame, pointMap)
-          if (!nearest) return
-
-          setSelectedSample(buildSample(frame, nearest))
-        }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
-
-        clickHandlerRef.current = clickHandler
 
         setIsReady(true)
         setLoadingText('')
       } catch (error) {
-        console.error(error)
-        setErrorText('Erreur au chargement WW3')
+        console.error('Scalar source load error:', error)
+        setErrorText(error instanceof Error ? error.message : 'Erreur au chargement')
         setLoadingText('')
       }
     }
 
-    initDataAndSurface()
+    loadSource()
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [selectedSource])
 
   useEffect(() => {
     if (!viewerRef.current) return
@@ -1158,398 +1073,392 @@ export default function LaRochelleWaveView({ onBack }: Props) {
 
     const viewer = viewerRef.current
     const material = materialRef.current
-    const textures = texturesRef.current[currentFrame]
-    const frameTime = frameTimesRef.current[currentFrame]
-    const metadata = metadataRef.current
+    const manifest = activeManifestRef.current
 
-    if (!viewer || !material || !textures || !frameTime || !metadata) return
+    if (!viewer || !material || !manifest) return
 
-    material.uniforms.image = textures.variables[selectedVariable]
-    material.uniforms.shallowMask = textures.shallowMask
-    material.uniforms.dayBlend = computeDayBlend(frameTime, metadata.center.lon, metadata.center.lat)
+    const safeFrameIndex = clamp(currentFrame, 0, Math.max(0, manifest.frames.length - 1))
+    const frame = manifest.frames[safeFrameIndex]
+    const frameTime = frameTimesRef.current[safeFrameIndex]
+    const variableDef = findVariableDef(selectedSource, selectedVariable)
+
+    if (!frame || !frameTime || !variableDef) return
+
+    const image =
+      getFrameAsset(frame, variableDef) ??
+      Object.values(frame.assets)[0] ??
+      PLACEHOLDER_IMAGE
+
+    material.uniforms.image = image
+    material.uniforms.dayBlend = computeDayBlend(
+      frameTime,
+      (manifest.bbox.lon_min + manifest.bbox.lon_max) * 0.5,
+      (manifest.bbox.lat_min + manifest.bbox.lat_max) * 0.5
+    )
 
     viewer.clock.currentTime = Cesium.JulianDate.clone(frameTime)
     viewer.clock.shouldAnimate = false
     viewer.scene.requestRender()
-  }, [currentFrame, selectedVariable, isReady])
-
-  useEffect(() => {
-    if (!isReady || !selectedSample) return
-
-    const frame = framesRef.current[currentFrame]
-    const point = pointsByIdRef.current.get(selectedSample.pointId)
-    if (!frame || !point) return
-
-    setSelectedSample(buildSample(frame, point))
-  }, [currentFrame, isReady])
+  }, [currentFrame, selectedVariable, selectedSource, isReady])
 
   useEffect(() => {
     if (!isPlaying) return
 
-    const frames = framesRef.current
-    if (!frames.length) return
+    const manifest = activeManifestRef.current
+    if (!manifest?.frames.length) return
 
     const id = window.setInterval(() => {
-      setCurrentFrame(prev => (prev + 1) % frames.length)
+      setCurrentFrame(prev => (prev + 1) % manifest.frames.length)
     }, FRAME_PLAY_INTERVAL_MS)
 
     return () => window.clearInterval(id)
-  }, [isPlaying])
+  }, [isPlaying, selectedSource])
 
   useEffect(() => {
     const viewer = viewerRef.current
-    const raster = rasterRef.current
-    const frame = framesRef.current[currentFrame]
-    const metadata = metadataRef.current
+    if (!viewer || !isReady) return
 
-    if (!viewer || !raster || !frame || !metadata) return
+    let cancelled = false
 
-    arrowEntitiesRef.current.forEach(entity => viewer.entities.remove(entity))
-    arrowEntitiesRef.current = []
+    const syncWind = async () => {
+      if (!showWind) {
+        if (windDataSourceRef.current) {
+          windDataSourceRef.current.show = false
+        }
+        return
+      }
 
-    if (!showArrows) return
+      if (!windDataSourceRef.current) {
+        const source = await Cesium.CzmlDataSource.load(WIND_CZML_URL)
+        if (cancelled || !viewerRef.current) return
+        windDataSourceRef.current = source
+        viewerRef.current.dataSources.add(source)
+      }
 
-    const stride = Math.max(1, Math.round(Math.sqrt((raster.width * raster.height) / 180)))
-    const newEntities: Cesium.Entity[] = []
-
-    for (const pointId of frame.activePointIds) {
-      const point = raster.pointById.get(pointId)
-      const cell = frame.cells[pointId]
-      if (!point || !cell) continue
-      if (point.ix % stride !== 0 || point.iy % stride !== 0) continue
-      if (cell.dir === null) continue
-
-      const hs = cell.hs ?? 0.4
-      const lengthMeters = metadata.resolution_m * (1.8 + clamp(hs, 0, 2.2) * 0.9)
-      const end = destinationPoint(point.lon, point.lat, cell.dir, lengthMeters)
-
-      const entity = viewer.entities.add({
-        polyline: {
-          positions: Cesium.Cartesian3.fromDegreesArrayHeights([
-            point.lon,
-            point.lat,
-            (terrainByPointIdRef.current.get(point.id) ?? 0) + WW3_SURFACE_LIFT_M + 2,
-            end.lon,
-            end.lat,
-            (terrainByPointIdRef.current.get(point.id) ?? 0) + WW3_SURFACE_LIFT_M + 2,
-          ]),
-          width: 1.8,
-          material: new Cesium.PolylineArrowMaterialProperty(
-            Cesium.Color.WHITE.withAlpha(0.78)
-          ),
-        },
-      })
-
-      newEntities.push(entity)
+      windDataSourceRef.current.show = true
     }
 
-    arrowEntitiesRef.current = newEntities
-  }, [currentFrame, showArrows, isReady])
+    syncWind().catch(error => {
+      console.error(error)
+      setErrorText(error instanceof Error ? error.message : 'Erreur chargement vent')
+    })
 
-  const frames = framesRef.current
-  const metadata = metadataRef.current
-  const currentFrameData = frames[currentFrame]
+    return () => {
+      cancelled = true
+    }
+  }, [showWind, isReady])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer || !isReady) return
+
+    let cancelled = false
+
+    const syncCurrent = async () => {
+      if (!showCurrent) {
+        if (currentDataSourceRef.current) {
+          currentDataSourceRef.current.show = false
+        }
+        return
+      }
+
+      if (!currentDataSourceRef.current) {
+        const source = await Cesium.CzmlDataSource.load(CURRENT_CZML_URL)
+        if (cancelled || !viewerRef.current) return
+        currentDataSourceRef.current = source
+        viewerRef.current.dataSources.add(source)
+      }
+
+      currentDataSourceRef.current.show = true
+    }
+
+    syncCurrent().catch(error => {
+      console.error(error)
+      setErrorText(error instanceof Error ? error.message : 'Erreur chargement courant')
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [showCurrent, isReady])
+
+  const manifest = activeManifestRef.current
+  const frameCount = manifest?.frames.length ?? 0
+  const safeFrameIndex = manifest ? clamp(currentFrame, 0, Math.max(0, manifest.frames.length - 1)) : 0
+  const currentFrameData = manifest?.frames[safeFrameIndex] ?? null
+  const resolvedAssetKey = getResolvedAssetKey(currentFrameData, selectedVariableDef)
+  const variableMeta = resolvedAssetKey ? manifest?.variableMeta?.[resolvedAssetKey] : null
+  const meshSize = manifest ? fitMeshSize(manifest.width, manifest.height, MAX_MESH_SIZE) : null
+  const progressPercent = frameCount > 1 ? ((safeFrameIndex + 1) / frameCount) * 100 : 0
+
+  const canShowLegend =
+    showLegend &&
+    selectedSource === 'waves' &&
+    Boolean(selectedVariableDef.legendKey)
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div className="ww3-scene">
       <div ref={containerRef} className="map3d-container" />
 
-      <button className="scene-back-btn" onClick={onBack}>
+      <button className="scene-back-btn" onClick={onBack} type="button">
         ← Retour
       </button>
 
-      <div
-        style={{
-          position: 'absolute',
-          top: 132,
-          left: 16,
-          zIndex: 58,
-          width: 180,
-          borderRadius: 12,
-          background: 'rgba(10, 10, 20, 0.9)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-          padding: 10,
-          color: '#fff',
-          fontFamily: 'sans-serif',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            opacity: 0.85,
-            marginBottom: 8,
-            letterSpacing: 0.4,
-            textTransform: 'uppercase',
-          }}
-        >
-          Fond de carte
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {BASEMAPS.map(item => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setBasemap(item.key)}
-              style={{
-                borderRadius: 8,
-                border:
-                  basemap === item.key
-                    ? '1px solid #378ADD'
-                    : '1px solid rgba(255,255,255,0.12)',
-                background:
-                  basemap === item.key
-                    ? 'rgba(55,138,221,0.22)'
-                    : 'rgba(255,255,255,0.04)',
-                color: '#fff',
-                padding: '8px 10px',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-                textAlign: 'left',
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-
-          <button
-            type="button"
-            onClick={() => setShowLegend(v => !v)}
-            style={{
-              marginTop: 4,
-              borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(255,255,255,0.04)',
-              color: '#fff',
-              padding: '8px 10px',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 600,
-              textAlign: 'left',
-            }}
-          >
-            {showLegend ? 'Masquer légende' : 'Afficher légende'}
-          </button>
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          right: 16,
-          zIndex: 55,
-          width: 420,
-          maxWidth: 'calc(100vw - 32px)',
-          borderRadius: 16,
-          background: 'rgba(10, 10, 20, 0.92)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
-          padding: 16,
-          color: '#fff',
-          fontFamily: 'sans-serif',
-        }}
-      >
-        <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>
-          {metadata?.project ?? 'La Rochelle — WW3'}
-        </div>
-
-        <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 12 }}>
-          Surface WW3
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          {VARIABLES.map(variable => {
-            const active = variable.key === selectedVariable
-            return (
-              <button
-                key={variable.key}
-                type="button"
-                onClick={() => setSelectedVariable(variable.key)}
-                style={{
-                  border: active ? '1px solid #378ADD' : '1px solid rgba(255,255,255,0.12)',
-                  background: active ? 'rgba(55,138,221,0.22)' : 'rgba(255,255,255,0.04)',
-                  color: '#fff',
-                  borderRadius: 999,
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: 12,
-                }}
-              >
-                {variable.label}
-              </button>
-            )
-          })}
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-          <button
-            type="button"
-            onClick={() => setIsPlaying(v => !v)}
-            style={{
-              border: 'none',
-              borderRadius: 10,
-              background: isPlaying ? '#c0392b' : '#378ADD',
-              color: '#fff',
-              padding: '10px 14px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              minWidth: 150,
-            }}
-          >
-            {isPlaying ? '■ Stop animation' : '▶ Lancer animation'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowArrows(v => !v)}
-            style={{
-              border: showArrows ? '1px solid #378ADD' : '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 10,
-              background: showArrows ? 'rgba(55,138,221,0.18)' : 'rgba(255,255,255,0.04)',
-              color: '#fff',
-              padding: '10px 14px',
-              cursor: 'pointer',
-              fontWeight: 700,
-            }}
-          >
-            Flèches {showArrows ? 'ON' : 'OFF'}
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-          {frames.map((frame, index) => {
-            const active = index === currentFrame
-            return (
-              <button
-                key={`${frame.ts}-${index}`}
-                type="button"
-                onClick={() => setCurrentFrame(index)}
-                style={{
-                  border: active ? '1px solid #378ADD' : '1px solid rgba(255,255,255,0.12)',
-                  background: active ? 'rgba(55,138,221,0.18)' : 'rgba(255,255,255,0.04)',
-                  color: '#fff',
-                  borderRadius: 8,
-                  padding: '7px 10px',
-                  cursor: 'pointer',
-                  fontWeight: active ? 800 : 600,
-                  minWidth: 60,
-                  fontSize: 12,
-                }}
-              >
-                {formatFrameLabel(frame.ts)}
-              </button>
-            )
-          })}
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 8,
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
-          <div style={{ opacity: 0.72 }}>Variable</div>
-          <div style={{ textAlign: 'right', fontWeight: 700 }}>
-            {selectedVariableDef.label} ({selectedVariableDef.unit})
-          </div>
-
-          <div style={{ opacity: 0.72 }}>Temps</div>
-          <div style={{ textAlign: 'right', fontWeight: 700 }}>
-            {currentFrameData?.ts ?? '—'}
-          </div>
-
-          <div style={{ opacity: 0.72 }}>Hs max</div>
-          <div style={{ textAlign: 'right', fontWeight: 700 }}>
-            {formatNumber(currentFrameData?.hsMax ?? null)} m
-          </div>
-
-          <div style={{ opacity: 0.72 }}>Hs moy</div>
-          <div style={{ textAlign: 'right', fontWeight: 700 }}>
-            {formatNumber(currentFrameData?.hsMean ?? null)} m
-          </div>
-
-          <div style={{ opacity: 0.72 }}>Points actifs</div>
-          <div style={{ textAlign: 'right', fontWeight: 700 }}>
-            {currentFrameData?.nActive ?? '—'}
-          </div>
-
-          <div style={{ opacity: 0.72 }}>Résolution</div>
-          <div style={{ textAlign: 'right', fontWeight: 700 }}>
-            {metadata?.resolution_m ?? '—'} m
-          </div>
-
-          <div style={{ opacity: 0.72 }}>Surface</div>
-          <div style={{ textAlign: 'right', fontWeight: 700 }}>
-            terrain + {WW3_SURFACE_LIFT_M.toFixed(1)} m
-          </div>
-        </div>
-
-        {selectedSample && (
-          <div
-            style={{
-              borderRadius: 12,
-              background: 'rgba(255,255,255,0.05)',
-              padding: 12,
-              fontSize: 13,
-            }}
-          >
-            <div style={{ fontWeight: 800, marginBottom: 8 }}>Échantillon WW3</div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 7,
-              }}
-            >
-              <div style={{ opacity: 0.72 }}>Lon</div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>
-                {selectedSample.lon.toFixed(5)}
-              </div>
-
-              <div style={{ opacity: 0.72 }}>Lat</div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>
-                {selectedSample.lat.toFixed(5)}
-              </div>
-
-              <div style={{ opacity: 0.72 }}>Hs</div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>
-                {formatNumber(selectedSample.hs)} m
-              </div>
-
-              <div style={{ opacity: 0.72 }}>Tp</div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>
-                {formatNumber(selectedSample.tp)} s
-              </div>
-
-              <div style={{ opacity: 0.72 }}>Dir</div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>
-                {formatNumber(selectedSample.dir, 0)} °
-              </div>
-
-              <div style={{ opacity: 0.72 }}>Hs houle 1</div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>
-                {formatNumber(selectedSample.phs0)} m
-              </div>
-
-              <div style={{ opacity: 0.72 }}>Tp houle 1</div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>
-                {formatNumber(selectedSample.ptp0)} s
-              </div>
+      <aside className={`ww3-dock ${panelCollapsed ? 'collapsed' : ''}`}>
+        <div className="ww3-dock-header">
+          <div className="ww3-dock-headings">
+            <span className="ww3-dock-kicker">{sourceDef.label}</span>
+            <div className="ww3-dock-title">Surface WW3</div>
+            <div className="ww3-dock-status">
+              {currentFrameData ? currentFrameData.ts : loadingText || 'Chargement'}
             </div>
           </div>
-        )}
-      </div>
 
-      {showLegend && <WW3Legend key={selectedVariable} activeVar={selectedVariable} visible />}
+          <div className="ww3-dock-actions">
+            <button
+              className={`ww3-ghost-btn ${showDetails ? 'active' : ''}`}
+              onClick={() => setShowDetails(v => !v)}
+              type="button"
+            >
+              Détails
+            </button>
+
+            <button
+              className="ww3-icon-btn"
+              onClick={() => setPanelCollapsed(v => !v)}
+              type="button"
+              aria-label={panelCollapsed ? 'Déployer le panneau' : 'Réduire le panneau'}
+            >
+              {panelCollapsed ? '+' : '−'}
+            </button>
+          </div>
+        </div>
+
+        {panelCollapsed ? (
+          <div className="ww3-dock-mini">
+            <button
+              className={`ww3-primary-btn compact ${isPlaying ? 'stop' : ''}`}
+              onClick={() => setIsPlaying(v => !v)}
+              type="button"
+            >
+              {isPlaying ? 'Pause' : 'Lecture'}
+            </button>
+
+            <div className="ww3-mini-meta">
+              <strong>{selectedVariableDef.label}</strong>
+              <span>{formatFrameLabel(currentFrameData?.ts ?? '') || '—'}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="ww3-dock-body">
+            <div className="ww3-section">
+              <div className="ww3-section-label">Source</div>
+              <div className="ww3-chip-row">
+                {SOURCE_DEFS.map(source => (
+                  <button
+                    key={source.key}
+                    type="button"
+                    onClick={() => setSelectedSource(source.key)}
+                    className={`ww3-chip ${selectedSource === source.key ? 'active' : ''}`}
+                  >
+                    {source.shortLabel}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="ww3-section">
+              <div className="ww3-section-label">Variable</div>
+              <div className="ww3-chip-row">
+                {sourceDef.variables.map(variable => {
+                  const available = availableVariables.includes(variable.key)
+                  const active = variable.key === selectedVariable
+
+                  return (
+                    <button
+                      key={variable.key}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => setSelectedVariable(variable.key)}
+                      className={`ww3-chip ${active ? 'active' : ''}`}
+                    >
+                      {variable.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="ww3-main-actions">
+              <button
+                type="button"
+                onClick={() => setIsPlaying(v => !v)}
+                className={`ww3-primary-btn ${isPlaying ? 'stop' : ''}`}
+              >
+                {isPlaying ? 'Pause animation' : 'Lancer animation'}
+              </button>
+            </div>
+
+            <div className="ww3-toggle-row">
+              <button
+                type="button"
+                onClick={() => setShowWind(v => !v)}
+                className={`ww3-toggle-btn ${showWind ? 'active' : ''}`}
+              >
+                Vent {showWind ? 'ON' : 'OFF'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCurrent(v => !v)}
+                className={`ww3-toggle-btn ${showCurrent ? 'active' : ''}`}
+              >
+                Courant {showCurrent ? 'ON' : 'OFF'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowLegend(v => !v)}
+                className={`ww3-toggle-btn ${showLegend ? 'active' : ''}`}
+              >
+                Légende {showLegend ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            <div className="ww3-timeline-card">
+              <div className="ww3-timeline-head">
+                <span>{currentFrameData ? formatFrameLabel(currentFrameData.ts) : '—'}</span>
+                <span>{safeFrameIndex + 1} / {frameCount || 0}</span>
+              </div>
+
+              <input
+                type="range"
+                min={0}
+                max={Math.max(frameCount - 1, 0)}
+                step={1}
+                value={safeFrameIndex}
+                onChange={e => setCurrentFrame(parseInt(e.target.value, 10))}
+                className="ww3-range"
+              />
+
+              <div className="ww3-progress-bar">
+                <div
+                  className="ww3-progress-fill"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              <div className="ww3-timeline-actions">
+                <button
+                  type="button"
+                  className="ww3-mini-btn"
+                  onClick={() => setCurrentFrame(0)}
+                >
+                  Début
+                </button>
+
+                <button
+                  type="button"
+                  className="ww3-mini-btn"
+                  onClick={() => setCurrentFrame(prev => Math.max(0, prev - 1))}
+                >
+                  −1
+                </button>
+
+                <button
+                  type="button"
+                  className="ww3-mini-btn"
+                  onClick={() => setCurrentFrame(prev => Math.min(Math.max(frameCount - 1, 0), prev + 1))}
+                >
+                  +1
+                </button>
+
+                <button
+                  type="button"
+                  className="ww3-mini-btn"
+                  onClick={() => setCurrentFrame(Math.max(frameCount - 1, 0))}
+                >
+                  Fin
+                </button>
+              </div>
+            </div>
+
+            <div className="ww3-kpi-grid">
+              <div className="ww3-kpi">
+                <span>Variable</span>
+                <strong>{selectedVariableDef.label}</strong>
+              </div>
+              <div className="ww3-kpi">
+                <span>Unité</span>
+                <strong>{variableMeta?.unit ?? selectedVariableDef.unit}</strong>
+              </div>
+              <div className="ww3-kpi">
+                <span>Plage</span>
+                <strong>{formatRange(variableMeta)}</strong>
+              </div>
+              <div className="ww3-kpi">
+                <span>Fond</span>
+                <strong>{BASEMAPS.find(item => item.key === basemap)?.label ?? '—'}</strong>
+              </div>
+            </div>
+
+            {showDetails && (
+              <div className="ww3-details">
+                <div className="ww3-section">
+                  <div className="ww3-section-label">Fond de carte</div>
+                  <div className="ww3-chip-row">
+                    {BASEMAPS.map(item => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setBasemap(item.key)}
+                        className={`ww3-chip ${basemap === item.key ? 'active' : ''}`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="ww3-meta-list">
+                  <div className="ww3-meta-row">
+                    <span>Asset lu</span>
+                    <strong>{resolvedAssetKey ?? '—'}</strong>
+                  </div>
+                  <div className="ww3-meta-row">
+                    <span>Colormap</span>
+                    <strong>{variableMeta?.colormap ?? '—'}</strong>
+                  </div>
+                  <div className="ww3-meta-row">
+                    <span>Raster source</span>
+                    <strong>{manifest ? `${manifest.width} × ${manifest.height}` : '—'}</strong>
+                  </div>
+                  <div className="ww3-meta-row">
+                    <span>Maille 3D</span>
+                    <strong>{meshSize ? `${meshSize.width} × ${meshSize.height}` : '—'}</strong>
+                  </div>
+                  <div className="ww3-meta-row">
+                    <span>CRS</span>
+                    <strong>{manifest?.crs ?? '—'}</strong>
+                  </div>
+                  <div className="ww3-meta-row">
+                    <span>Surface</span>
+                    <strong>{`terrain + ${WW3_SURFACE_LIFT_M.toFixed(1)} m`}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </aside>
+
+      {canShowLegend && (
+        <WW3Legend
+          key={selectedVariableDef.legendKey}
+          activeVar={selectedVariableDef.legendKey as any}
+          visible
+        />
+      )}
 
       {(!isReady || loadingText) && !errorText && (
         <div className="map3d-loading">{loadingText || 'Chargement...'}</div>
