@@ -3,13 +3,16 @@ import {
   Viewer,
   Ion,
   IonImageryProvider,
+  CesiumTerrainProvider,
   Cartesian2,
   Cartesian3,
+  Cartographic,
   Color,
   ColorBlendMode,
   DistanceDisplayCondition,
   Entity,
   GeoJsonDataSource,
+  HeightReference,
   NearFarScalar,
   Rectangle,
   ScreenSpaceEventHandler,
@@ -18,10 +21,10 @@ import {
   HeadingPitchRoll,
   Transforms,
   Math as CesiumMath,
-  HeightReference,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import './Map3D/Map3D.css'
+
 
 const CESIUM_TOKEN = import.meta.env.VITE_CESIUM_TOKEN
 const RELAY_URL = 'ws://localhost:8787'
@@ -34,6 +37,68 @@ const MODEL_HEIGHT_OFFSET = 0
 const MODEL_HEADING_OFFSET = 90
 const MODEL_PITCH_OFFSET = 90
 const MODEL_ROLL_OFFSET = 0
+
+const BALISAGE_HEIGHT = 2.5
+const BALISAGE_ICON_GROUND_OFFSET = 0
+const BALISAGE_LABEL_OFFSET_Y = 8
+const BALISAGE_FAR_DISTANCE = 6500
+const BALISAGE_SELECTED_DISTANCE = 80000
+const BALISAGE_LABEL_MAX_DISTANCE = 1800
+const BALISAGE_UPDATE_INTERVAL_MS = 160
+
+const MARINE_ONLY_LAYERS = [
+  'boycar',
+  'boyinb',
+  'boyisd',
+  'boylat',
+  'boysaw',
+  'boyspp',
+  'newobj',
+  'aisatn',
+  'morfac',
+]
+
+const BALISAGE_ICONS: Record<string, string> = {
+  aisatn: 'NEWOBJ.svg',
+  boycar: 'BOYCAR_N.svg',
+  boyinb: 'MORFAC_BOYINB.svg',
+  boyisd: 'BOYISD.svg',
+  boylat: 'BOYLAT_T.svg',
+  boysaw: 'BOYSAW.svg',
+  boyspp: 'BOYSPP.svg',
+  morfac: 'MORFAC_BOYINB.svg',
+  newobj: 'NEWOBJ.svg',
+}
+
+type BalisageBillboardSpec = {
+  width: number
+  height: number
+}
+
+const BALISAGE_BILLBOARD_SPECS: Record<string, BalisageBillboardSpec> = {
+  aisatn: { width: 34, height: 68 },
+  boycar: { width: 38, height: 76 },
+  boyinb: { width: 38, height: 76 },
+  boyisd: { width: 38, height: 76 },
+  boylat: { width: 38, height: 76 },
+  boysaw: { width: 38, height: 76 },
+  boyspp: { width: 38, height: 76 },
+  morfac: { width: 40, height: 70 },
+  newobj: { width: 34, height: 68 },
+}
+
+const makeFallbackSvg = (label: string, fill: string) => {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="400" viewBox="0 0 200 400">
+      <rect x="35" y="35" width="130" height="330" rx="20" fill="${fill}" stroke="#0b1220" stroke-width="14"/>
+      <text x="100" y="215" text-anchor="middle" font-size="54" fill="#ffffff" font-family="Arial, sans-serif">
+        ${label.slice(0, 3).toUpperCase()}
+      </text>
+    </svg>
+  `
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
 
 interface Props {
   onBack: () => void
@@ -96,11 +161,105 @@ type SelectedBalisage = {
   info: string
 }
 
+type BalisagePopup = {
+  id: string
+  title: string
+  layerName: string
+  info: string
+  photoUrls: string[]
+  photoIndex: number
+  screenX: number
+  screenY: number
+}
+
 const DEFAULT_BBOX: BBox = {
   south: 46.1,
   west: -1.25,
   north: 46.25,
   east: -1.05,
+}
+
+const trimImageTransparentPixels = async (source: string, targetWidth: number, targetHeight: number) => {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = source
+  })
+
+
+
+
+  const sourceCanvas = document.createElement('canvas')
+  const sourceWidth = Math.max(1, image.naturalWidth || image.width || 200)
+  const sourceHeight = Math.max(1, image.naturalHeight || image.height || 400)
+
+  sourceCanvas.width = sourceWidth
+  sourceCanvas.height = sourceHeight
+
+  const sourceContext = sourceCanvas.getContext('2d')
+  if (!sourceContext) return source
+
+  sourceContext.clearRect(0, 0, sourceWidth, sourceHeight)
+  sourceContext.drawImage(image, 0, 0, sourceWidth, sourceHeight)
+
+  const imageData = sourceContext.getImageData(0, 0, sourceWidth, sourceHeight)
+  const data = imageData.data
+
+  let minX = sourceWidth
+  let minY = sourceHeight
+  let maxX = -1
+  let maxY = -1
+
+  for (let y = 0; y < sourceHeight; y += 1) {
+    for (let x = 0; x < sourceWidth; x += 1) {
+      const alpha = data[(y * sourceWidth + x) * 4 + 3]
+
+      if (alpha > 8) {
+        minX = Math.min(minX, x)
+        minY = Math.min(minY, y)
+        maxX = Math.max(maxX, x)
+        maxY = Math.max(maxY, y)
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) return source
+
+  const cropWidth = maxX - minX + 1
+  const cropHeight = maxY - minY + 1
+
+  const outputCanvas = document.createElement('canvas')
+  outputCanvas.width = targetWidth * 2
+  outputCanvas.height = targetHeight * 2
+
+  const outputContext = outputCanvas.getContext('2d')
+  if (!outputContext) return source
+
+  outputContext.clearRect(0, 0, outputCanvas.width, outputCanvas.height)
+
+  const availableWidth = outputCanvas.width
+  const availableHeight = outputCanvas.height
+  const scale = Math.min(availableWidth / cropWidth, availableHeight / cropHeight)
+  const drawWidth = cropWidth * scale
+  const drawHeight = cropHeight * scale
+  const drawX = (outputCanvas.width - drawWidth) / 2
+  const drawY = outputCanvas.height - drawHeight
+
+  outputContext.drawImage(
+    sourceCanvas,
+    minX,
+    minY,
+    cropWidth,
+    cropHeight,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight,
+  )
+
+  return outputCanvas.toDataURL('image/png')
 }
 
 export default function LaRochelleAisLiveView({ onBack }: Props) {
@@ -113,6 +272,10 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
   const vesselMapRef = useRef<Map<string, VesselState>>(new Map())
   const balisageSourcesRef = useRef<Map<string, GeoJsonDataSource>>(new Map())
   const balisageEntityLayerRef = useRef<Map<string, string>>(new Map())
+  const balisageImageCacheRef = useRef<Map<string, Promise<string>>>(new Map())
+  const selectedBalisageIdRef = useRef<string | null>(null)
+  const balisageVisibilityTimerRef = useRef<number | null>(null)
+  const cameraChangedRemoveRef = useRef<(() => void) | null>(null)
 
   const [isLoading, setIsLoading] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState('Disconnected')
@@ -126,6 +289,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
   const [selectedVessel, setSelectedVessel] = useState<VesselState | null>(null)
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('none')
   const [selectedBalisage, setSelectedBalisage] = useState<SelectedBalisage | null>(null)
+  const [balisagePopup, setBalisagePopup] = useState<BalisagePopup | null>(null)
   const [vesselRows, setVesselRows] = useState<VesselRow[]>([])
   const [eventRows, setEventRows] = useState<EventRow[]>([])
   const [messageCount, setMessageCount] = useState(0)
@@ -133,7 +297,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showBalisage, setShowBalisage] = useState(true)
-  const [showBalisageLabels, setShowBalisageLabels] = useState(false)
+  const [showBalisageLabels, setShowBalisageLabels] = useState(true)
   const [balisageLayers, setBalisageLayers] = useState<BalisageLayerState[]>([])
 
   const visibleEvents = useMemo(() => eventRows.slice(0, 8), [eventRows])
@@ -182,38 +346,44 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     )
   }
 
-  const getBalisageColor = (layerName: string) => {
-    const colors: Record<string, Color> = {
-      bcnisd: Color.BLACK,
-      bcnlat: Color.YELLOW,
-      bcnspp: Color.YELLOW,
-      boycar: Color.GREEN,
-      boyinb: Color.WHITE,
-      boyisd: Color.BLACK,
-      boylat: Color.RED,
-      boysaw: Color.WHITE,
-      boyspp: Color.YELLOW,
-      daymar: Color.ORANGE,
-      fosgic: Color.CYAN,
-      forstc: Color.BROWN,
-      lights: Color.GOLD,
-      lndmrk: Color.GRAY,
-      morfac: Color.DARKGRAY,
-      newobj: Color.MAGENTA,
-      ofsplf: Color.ORANGE,
-      pilpnt: Color.BLUE,
-      pylons: Color.SLATEGRAY,
-      radsta: Color.CYAN,
-      rdosta: Color.CYAN,
-      rtpbcn: Color.DARKORANGE,
-      sitlnk: Color.CORNFLOWERBLUE,
-      sistat: Color.TEAL,
-      sistaw: Color.TEAL,
-      topmar: Color.WHITE,
-      vegatn: Color.GREEN,
+  const getBalisageSvgUrl = (layerName: string) => {
+    const fileName = BALISAGE_ICONS[layerName]
+
+    if (!fileName) {
+      return makeFallbackSvg(layerName, '#3fb4ff')
     }
 
-    return colors[layerName] ?? Color.CYAN
+    return `/balisage/svg/${fileName}`
+  }
+
+  const getBalisageBillboardSpec = (layerName: string) => {
+    return BALISAGE_BILLBOARD_SPECS[layerName] ?? { width: 38, height: 76 }
+  }
+
+  const getAnchoredBalisageImage = (layerName: string) => {
+    const cached = balisageImageCacheRef.current.get(layerName)
+
+    if (cached) {
+      return cached
+    }
+
+    const spec = getBalisageBillboardSpec(layerName)
+    const source = getBalisageSvgUrl(layerName)
+    const promise = trimImageTransparentPixels(source, spec.width, spec.height).catch(() => source)
+
+    balisageImageCacheRef.current.set(layerName, promise)
+
+    return promise
+  }
+
+  const normalizeBalisagePosition = (rawPosition: Cartesian3) => {
+    const cartographic = Cartographic.fromCartesian(rawPosition)
+
+    return Cartesian3.fromRadians(
+      cartographic.longitude,
+      cartographic.latitude,
+      BALISAGE_HEIGHT,
+    )
   }
 
   const buildMessageTypes = () => {
@@ -243,6 +413,15 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     setEventRows(prev => [row, ...prev].slice(0, 30))
   }
 
+  const clearSelection = () => {
+    selectedBalisageIdRef.current = null
+    setSelectedId(null)
+    setSelectedVessel(null)
+    setSelectedMode('none')
+    setSelectedBalisage(null)
+    setBalisagePopup(null)
+  }
+
   const clearDynamicEntities = () => {
     const viewer = viewerRef.current
     if (!viewer) return
@@ -253,10 +432,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
 
     entityMapRef.current.clear()
     vesselMapRef.current.clear()
-    setSelectedId(null)
-    setSelectedVessel(null)
-    setSelectedMode('none')
-    setSelectedBalisage(null)
+    clearSelection()
     setVesselRows([])
     setEventRows([])
     setLiveCount(0)
@@ -413,16 +589,19 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
       wsRef.current.close()
       wsRef.current = null
     }
+
     setConnectionStatus('Disconnected')
   }
 
   const getBalisageValue = (entity: any, keys: string[], time: any) => {
     for (const key of keys) {
       const value = entity?.properties?.[key]?.getValue?.(time)
+
       if (value !== undefined && value !== null && value !== '') {
         return String(value)
       }
     }
+
     return ''
   }
 
@@ -434,6 +613,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     )
 
     if (label) return label
+
     return layerName
   }
 
@@ -449,11 +629,83 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     return lines.join('\n')
   }
 
+  const slugifyBalisageId = (value: string) => {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+  const getBalisagePhotoUrls = (entity: any, layerName: string, time: any) => {
+  const objectId = getBalisageValue(
+    entity,
+    ['id', 'ID', 'OBJNAM', 'NOBJNM', 'NOM', 'NOM_OBJET', 'LIBELLE'],
+    time,
+  )
+
+  const urls = []
+
+  if (objectId) {
+    const slug = slugifyBalisageId(objectId)
+    urls.push(`/balisage/photos/by-id/${slug}.jpg`)
+    urls.push(`/balisage/photos/${layerName}/${slug}.jpg`)
+  }
+
+  urls.push(`/balisage/photos/${layerName}/default.jpg`)
+  urls.push('/balisage/photos/newobj/default.jpg')
+
+  return urls
+}
+
+  const updateBalisageVisibilityByCamera = () => {
+    const viewer = viewerRef.current
+    if (!viewer) return
+
+    const time = viewer.clock.currentTime
+    const cameraPosition = viewer.camera.positionWC
+    const selectedBalisageId = selectedBalisageIdRef.current
+
+    balisageSourcesRef.current.forEach(dataSource => {
+      dataSource.entities.values.forEach(entity => {
+        const key = (entity as any).__balisageKey
+        const position = entity.position?.getValue(time)
+
+        if (!position) return
+
+        const distance = Cartesian3.distance(cameraPosition, position)
+        const isSelected = selectedBalisageId !== null && key === selectedBalisageId
+        const shouldShowIcon = isSelected || distance <= BALISAGE_FAR_DISTANCE
+        const shouldShowLabel = showBalisageLabels && (isSelected || distance <= BALISAGE_LABEL_MAX_DISTANCE)
+
+        if (entity.billboard) {
+          entity.billboard.show = shouldShowIcon
+          entity.billboard.distanceDisplayCondition = new DistanceDisplayCondition(
+            0,
+            isSelected ? BALISAGE_SELECTED_DISTANCE : BALISAGE_FAR_DISTANCE,
+          )
+        }
+
+        if (entity.label) {
+          entity.label.show = shouldShowLabel
+          entity.label.distanceDisplayCondition = new DistanceDisplayCondition(
+            0,
+            isSelected ? BALISAGE_SELECTED_DISTANCE : BALISAGE_LABEL_MAX_DISTANCE,
+          )
+        }
+      })
+    })
+
+    requestRender()
+  }
+
   const setSingleBalisageLayerVisibility = (layerName: string, visible: boolean) => {
     const dataSource = balisageSourcesRef.current.get(layerName)
     if (!dataSource) return
 
     dataSource.show = visible
+
     setBalisageLayers(prev =>
       prev.map(layer =>
         layer.name === layerName
@@ -461,12 +713,14 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
           : layer,
       ),
     )
+
     requestRender()
   }
 
   const toggleBalisageLayer = (layerName: string) => {
     const existing = balisageLayers.find(layer => layer.name === layerName)
     if (!existing) return
+
     setSingleBalisageLayerVisibility(layerName, !existing.visible)
   }
 
@@ -476,6 +730,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     })
 
     setBalisageLayers(prev => prev.map(layer => ({ ...layer, visible })))
+    updateBalisageVisibilityByCamera()
     requestRender()
   }
 
@@ -496,14 +751,17 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
           showBackground: true,
           backgroundColor: Color.fromCssColorString('#08101d').withAlpha(0.82),
           fillColor: Color.WHITE,
-          pixelOffset: new Cartesian2(0, -18),
-          verticalOrigin: VerticalOrigin.BOTTOM,
-          distanceDisplayCondition: new DistanceDisplayCondition(0, 5000),
-          scaleByDistance: new NearFarScalar(300, 1, 5000, 0.35),
+          pixelOffset: new Cartesian2(0, BALISAGE_LABEL_OFFSET_Y),
+          verticalOrigin: VerticalOrigin.TOP,
+          distanceDisplayCondition: new DistanceDisplayCondition(0, BALISAGE_LABEL_MAX_DISTANCE),
+          scaleByDistance: new NearFarScalar(300, 1, BALISAGE_LABEL_MAX_DISTANCE, 0.45),
+          heightReference: HeightReference.NONE,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         }
       })
     })
 
+    updateBalisageVisibilityByCamera()
     requestRender()
   }
 
@@ -514,41 +772,56 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     const manifestResponse = await fetch('/data/balisage/manifest.json')
     const manifestJson = await manifestResponse.json()
 
-    const layerNames: string[] = Array.isArray(manifestJson)
+    const allLayerNames: string[] = Array.isArray(manifestJson)
       ? manifestJson
       : Array.isArray(manifestJson?.layers)
         ? manifestJson.layers
         : []
 
+    const layerNames = allLayerNames.filter(layerName => MARINE_ONLY_LAYERS.includes(layerName))
     const loadedStates: BalisageLayerState[] = []
 
     for (const layerName of layerNames) {
       const dataSource = await GeoJsonDataSource.load(`/data/balisage/${layerName}.geojson`, {
-        clampToGround: true,
+        clampToGround: false,
       })
 
       viewer.dataSources.add(dataSource)
       dataSource.show = showBalisage
 
       const time = viewer.clock.currentTime
+      const spec = getBalisageBillboardSpec(layerName)
+      const anchoredImage = await getAnchoredBalisageImage(layerName)
 
       dataSource.entities.values.forEach((entity, index) => {
         if (!entity.position) return
 
+        const rawPosition = entity.position.getValue(time) as Cartesian3 | undefined
+        if (!rawPosition) return
+
+        const anchoredPosition = normalizeBalisagePosition(rawPosition)
         const entityKey = `${layerName}:${String(entity.id)}:${index}`
+
         balisageEntityLayerRef.current.set(entityKey, layerName)
         ;(entity as any).__balisageKey = entityKey
 
-        entity.billboard = undefined
+        entity.position = anchoredPosition
+        entity.point = undefined
+        entity.polyline = undefined
+        entity.path = undefined
+        entity.model = undefined
 
-        entity.point = {
-          pixelSize: 10,
-          color: getBalisageColor(layerName),
-          outlineColor: Color.BLACK,
-          outlineWidth: 2,
-          heightReference: HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: 0,
-          distanceDisplayCondition: new DistanceDisplayCondition(0, 12000),
+        entity.billboard = {
+          image: anchoredImage,
+          width: spec.width,
+          height: spec.height,
+          heightReference: HeightReference.NONE,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          pixelOffset: new Cartesian2(0, BALISAGE_ICON_GROUND_OFFSET),
+          distanceDisplayCondition: new DistanceDisplayCondition(0, BALISAGE_FAR_DISTANCE),
+          scaleByDistance: new NearFarScalar(200, 1.15, BALISAGE_FAR_DISTANCE, 0.38),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          color: Color.WHITE,
         }
 
         const labelText = getBalisageTitle(entity, layerName, time)
@@ -560,10 +833,12 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
           showBackground: true,
           backgroundColor: Color.fromCssColorString('#08101d').withAlpha(0.82),
           fillColor: Color.WHITE,
-          pixelOffset: new Cartesian2(0, -18),
-          verticalOrigin: VerticalOrigin.BOTTOM,
-          distanceDisplayCondition: new DistanceDisplayCondition(0, 5000),
-          scaleByDistance: new NearFarScalar(300, 1, 5000, 0.35),
+          pixelOffset: new Cartesian2(0, BALISAGE_LABEL_OFFSET_Y),
+          verticalOrigin: VerticalOrigin.TOP,
+          distanceDisplayCondition: new DistanceDisplayCondition(0, BALISAGE_LABEL_MAX_DISTANCE),
+          scaleByDistance: new NearFarScalar(300, 1, BALISAGE_LABEL_MAX_DISTANCE, 0.45),
+          heightReference: HeightReference.NONE,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         }
       })
 
@@ -577,6 +852,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     }
 
     setBalisageLayers(loadedStates)
+    updateBalisageVisibilityByCamera()
     requestRender()
   }
 
@@ -734,6 +1010,11 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
 
         Ion.defaultAccessToken = CESIUM_TOKEN
 
+        const terrainProvider = await CesiumTerrainProvider.fromIonAssetId(1, {
+          requestWaterMask: true,
+          requestVertexNormals: true,
+        })
+
         const viewer = new Viewer(cesiumContainer.current!, {
           baseLayerPicker: false,
           geocoder: false,
@@ -746,8 +1027,9 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
           infoBox: false,
           selectionIndicator: false,
           shadows: false,
-          shouldAnimate: false,
-          requestRenderMode: true,
+          shouldAnimate: true,
+          requestRenderMode: false,
+          terrainProvider,
         })
 
         if (destroyed) return
@@ -756,10 +1038,23 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
         viewer.imageryLayers.removeAll()
         viewer.imageryLayers.addImageryProvider(await IonImageryProvider.fromAssetId(2))
         viewer.scene.globe.enableLighting = false
-        viewer.scene.globe.depthTestAgainstTerrain = true
+        viewer.scene.globe.depthTestAgainstTerrain = false
+        viewer.scene.globe.showWaterEffect = true
         viewer.scene.highDynamicRange = true
         viewer.scene.postProcessStages.fxaa.enabled = true
+        viewer.clock.shouldAnimate = true
         viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5)
+
+        const onCameraChanged = () => {
+          if (balisageVisibilityTimerRef.current !== null) return
+
+          balisageVisibilityTimerRef.current = window.setTimeout(() => {
+            balisageVisibilityTimerRef.current = null
+            updateBalisageVisibilityByCamera()
+          }, BALISAGE_UPDATE_INTERVAL_MS)
+        }
+
+        cameraChangedRemoveRef.current = viewer.camera.changed.addEventListener(onCameraChanged)
 
         drawBbox()
         flyToBbox()
@@ -773,28 +1068,32 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
           const pickedEntity = picked?.id
 
           if (!pickedEntity) {
-            setSelectedId(null)
-            setSelectedVessel(null)
-            setSelectedMode('none')
-            setSelectedBalisage(null)
+            clearSelection()
+            updateBalisageVisibilityByCamera()
             return
           }
 
           const pickedId = pickedEntity?.id
 
           if (typeof pickedId === 'string' && vesselMapRef.current.has(pickedId)) {
+            selectedBalisageIdRef.current = null
             setSelectedId(pickedId)
             setSelectedVessel({ ...vesselMapRef.current.get(pickedId)! })
             setSelectedMode('vessel')
             setSelectedBalisage(null)
+            setBalisagePopup(null)
+            updateBalisageVisibilityByCamera()
             return
           }
 
           const balisageKey = (pickedEntity as any).__balisageKey
+
           if (balisageKey) {
             const layerName = balisageEntityLayerRef.current.get(balisageKey) ?? 'balisage'
             const title = getBalisageTitle(pickedEntity, layerName, viewer.clock.currentTime)
             const info = formatBalisageInfo(pickedEntity, layerName, viewer.clock.currentTime)
+            const photoUrls = getBalisagePhotoUrls(pickedEntity, layerName, viewer.clock.currentTime)
+            selectedBalisageIdRef.current = balisageKey
 
             setSelectedId(null)
             setSelectedVessel(null)
@@ -805,13 +1104,23 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
               title,
               info,
             })
+            setBalisagePopup({
+              id: balisageKey,
+              title,
+              layerName,
+              info,
+              photoUrls,
+              photoIndex: 0,
+              screenX: click.position.x,
+              screenY: click.position.y,
+            })
+
+            updateBalisageVisibilityByCamera()
             return
           }
 
-          setSelectedId(null)
-          setSelectedVessel(null)
-          setSelectedMode('none')
-          setSelectedBalisage(null)
+          clearSelection()
+          updateBalisageVisibilityByCamera()
         }, ScreenSpaceEventType.LEFT_CLICK)
 
         setIsLoading(false)
@@ -828,6 +1137,16 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
       destroyed = true
       disconnect()
 
+      if (balisageVisibilityTimerRef.current !== null) {
+        window.clearTimeout(balisageVisibilityTimerRef.current)
+        balisageVisibilityTimerRef.current = null
+      }
+
+      if (cameraChangedRemoveRef.current) {
+        cameraChangedRemoveRef.current()
+        cameraChangedRemoveRef.current = null
+      }
+
       if (handlerRef.current && !handlerRef.current.isDestroyed()) {
         handlerRef.current.destroy()
         handlerRef.current = null
@@ -842,6 +1161,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
       vesselMapRef.current.clear()
       balisageSourcesRef.current.clear()
       balisageEntityLayerRef.current.clear()
+      balisageImageCacheRef.current.clear()
     }
   }, [])
 
@@ -859,8 +1179,10 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     entityMapRef.current.forEach((entity, id) => {
       const record = vesselMapRef.current.get(id)
       if (!record || !entity.label) return
+
       entity.label.text = showLabels ? getDisplayName(record) : ''
     })
+
     requestRender()
   }, [showLabels])
 
@@ -881,22 +1203,43 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     const viewer = viewerRef.current
     if (!viewer) return
 
-    if (selectedMode === 'vessel' && selectedVessel && selectedVessel.lat !== undefined && selectedVessel.lon !== undefined) {
+    if (
+      selectedMode === 'vessel' &&
+      selectedVessel &&
+      selectedVessel.lat !== undefined &&
+      selectedVessel.lon !== undefined
+    ) {
       viewer.camera.flyTo({
         destination: Cartesian3.fromDegrees(selectedVessel.lon, selectedVessel.lat, 3500),
         duration: 1.1,
       })
+
       return
     }
 
     if (selectedMode === 'balisage' && selectedBalisage) {
       balisageSourcesRef.current.forEach(dataSource => {
-        const entity = dataSource.entities.values.find(item => (item as any).__balisageKey === selectedBalisage.id)
+        const entity = dataSource.entities.values.find(
+          item => (item as any).__balisageKey === selectedBalisage.id,
+        )
+
         if (entity?.position) {
           const pos = entity.position.getValue(viewer.clock.currentTime)
+
           if (pos) {
+            const cartographic = Cartographic.fromCartesian(pos)
+
             viewer.camera.flyTo({
-              destination: Cartesian3.fromElements(pos.x, pos.y, pos.z + 2500),
+              destination: Cartesian3.fromRadians(
+                cartographic.longitude,
+                cartographic.latitude,
+                650,
+              ),
+              orientation: {
+                heading: CesiumMath.toRadians(0),
+                pitch: CesiumMath.toRadians(-45),
+                roll: 0,
+              },
               duration: 1.1,
             })
           }
@@ -909,6 +1252,62 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
     <>
       <div ref={cesiumContainer} className="map3d-container" />
 
+      {balisagePopup && (
+        <div
+          className="balisage-popup"
+          style={{
+            left: Math.min(balisagePopup.screenX + 18, window.innerWidth - 340),
+            top: Math.min(balisagePopup.screenY + 18, window.innerHeight - 420),
+          }}
+        >
+          <button
+            className="balisage-popup-close"
+            onClick={() => setBalisagePopup(null)}
+            type="button"
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+
+          <div className="balisage-popup-title">{balisagePopup.title}</div>
+          <div className="balisage-popup-subtitle">{balisagePopup.layerName}</div>
+
+         {balisagePopup.photoUrls[balisagePopup.photoIndex] && (
+            <img
+              src={balisagePopup.photoUrls[balisagePopup.photoIndex]}
+              alt={balisagePopup.title}
+              className="balisage-popup-image"
+              onError={() => {
+                setBalisagePopup(prev => {
+                  if (!prev) return prev
+
+                  const nextIndex = prev.photoIndex + 1
+
+                  if (nextIndex >= prev.photoUrls.length) {
+                    return {
+                      ...prev,
+                      photoUrls: [],
+                      photoIndex: 0,
+                    }
+                  }
+
+                  return {
+                    ...prev,
+                    photoIndex: nextIndex,
+                  }
+                })
+              }}
+            />
+          )}
+
+          <div className="balisage-popup-info">{balisagePopup.info}</div>
+
+          <button onClick={focusSelected} className="balisage-popup-focus" type="button">
+            Focus caméra
+          </button>
+        </div>
+      )}
+
       <button className="scene-back-btn" onClick={onBack} type="button">
         ← Retour
       </button>
@@ -920,7 +1319,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
           <div className="ais-dock-headings">
             <span className="ais-dock-kicker">AIS + BALISAGE</span>
             <div className="ais-dock-title">La Rochelle</div>
-            <div className="ais-dock-source">Source : relais local · modèles 3D navires · GeoJSON balisage</div>
+            <div className="ais-dock-source">Source : relais local · modèles 3D navires · SVG balisage</div>
           </div>
 
           <div className="ais-dock-actions">
@@ -997,7 +1396,7 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
                 <strong>{balisageLayers.filter(layer => layer.visible).length}</strong>
               </div>
               <div className="ais-kpi">
-                <span>Points</span>
+                <span>SVG</span>
                 <strong>{showBalisage ? 'On' : 'Off'}</strong>
               </div>
             </div>
@@ -1091,13 +1490,18 @@ export default function LaRochelleAisLiveView({ onBack }: Props) {
                   <button
                     key={row.id}
                     onClick={() => {
+                      selectedBalisageIdRef.current = null
                       setSelectedId(row.id)
                       const record = vesselMapRef.current.get(row.id)
+
                       if (record) {
                         setSelectedVessel({ ...record })
                         setSelectedMode('vessel')
                         setSelectedBalisage(null)
+                        setBalisagePopup(null)
                       }
+
+                      updateBalisageVisibilityByCamera()
                     }}
                     className={`ais-list-item ${selectedId === row.id ? 'active' : ''}`}
                     type="button"

@@ -1,0 +1,119 @@
+{
+  "name": "La Rochelle Xynthia",
+  "source": "r2d_telemac2d_flood_la_rochelle_20260402_20260403.nc",
+  "input_crs": "EPSG:2154",
+  "node_count": 259422,
+  "triangle_count": 516851,
+  "frame_count": 49,
+  "original_time_count": 49,
+  "frame_step": 1,
+  "min_depth": 0.03,
+  "bbox": {
+    "west": -1.3780113688049531,
+    "south": 45.93526255229592,
+    "east": -0.9246602785579787,
+    "north": 46.31480719860356
+  },
+  "center": {
+    "lon": -1.0889408934284073,
+    "lat": 46.129731242214994
+  },
+  "local_origin": {
+    "x": 384432.1570645512,
+    "y": 6567059.550173077
+  },
+  "time": {
+    "unit": "seconds",
+    "start": 0.0,
+    "end": 86400.0,
+    "values": [
+      0.0,
+      1800.0,
+      3600.0,
+      5400.0,
+      7200.0,
+      9000.0,
+      10800.0,
+      12600.0,
+      14400.0,
+      16200.0,
+      18000.0,
+      19800.0,
+      21600.0,
+      23400.0,
+      25200.0,
+      27000.0,
+      28800.0,
+      30600.0,
+      32400.0,
+      34200.0,
+      36000.0,
+      37800.0,
+      39600.0,
+      41400.0,
+      43200.0,
+      45000.0,
+      46800.0,
+      48600.0,
+      50400.0,
+      52200.0,
+      54000.0,
+      55800.0,
+      57600.0,
+      59400.0,
+      61200.0,
+      63000.0,
+      64800.0,
+      66600.0,
+      68400.0,
+      70200.0,
+      72000.0,
+      73800.0,
+      75600.0,
+      77400.0,
+      79200.0,
+      81000.0,
+      82800.0,
+      84600.0,
+      86400.0
+    ]
+  },
+  "ranges": {
+    "mesh_x": {
+      "min": 363187.5,
+      "max": 396112.5
+    },
+    "mesh_y": {
+      "min": 6546562.5,
+      "max": 6587037.5
+    },
+    "lon": {
+      "min": -1.3780113688049531,
+      "max": -0.9246602785579787
+    },
+    "lat": {
+      "min": 45.93526255229592,
+      "max": 46.31480719860356
+    },
+    "bottom": {
+      "min": -49.6447639465332,
+      "max": 57.74772262573242
+    },
+    "water_depth_wet": {
+      "min": 0.03000003658235073,
+      "max": 52.37661361694336,
+      "mean": 2.4993835030769813
+    }
+  },
+  "attributes": {
+    "title": "POCFLOODLA_ROCHELLE20260402TO202                                        SERAFIN",
+    "source_slf": "pipeline\\data\\processed\\telemac_case\\telemac2d_flood_la_rochelle_20260402_20260403\\outputs\\r2d_telemac2d_flood_la_rochelle_20260402_20260403.slf",
+    "conventions": "CF-1.8 (partial mesh export)",
+    "mesh_projection_note": "Projection reprise du fichier SLF ; aucune reprojection n'est appliquée ici.",
+    "time_stride": "1",
+    "variable_names_original": "VELOCITY U, VELOCITY V, WATER DEPTH, FREE SURFACE, BOTTOM",
+    "telemac_reference_datetime": "1900-1-1-0-0-0",
+    "total_time_steps_in_source": "49",
+    "total_time_steps_written": "49"
+  }
+}
